@@ -8,6 +8,7 @@ import { targetRoleFromOnboardingSelection } from "@/lib/mapOnboardingTargetRole
 import { ONBOARDING_TARGET_ROLE_ASSIGNABLE } from "@/lib/onboardingTargetRoleSpec";
 import { generateAndPersistRoadmap } from "@/services/generateAndPersistRoadmap";
 import { sendWelcomeEmail } from "@/services/notifications";
+import { provisionPublicProfile } from "@/services/provisionPublicProfile";
 
 export const runtime = "nodejs";
 
@@ -102,17 +103,28 @@ export async function POST(req: Request) {
 
     const supabase = getSupabaseAdmin();
 
+    const { data: existingUserRow } = await supabase
+      .from("users")
+      .select("id, username")
+      .eq("clerk_id", userId)
+      .maybeSingle();
+
+    const preservedUsername =
+      (existingUserRow?.username as string | null | undefined) ??
+      clerkUser?.username ??
+      null;
+
     const { data: userRow, error: userUpsertError } = await supabase
       .from("users")
       .upsert(
         {
           clerk_id: userId,
           email: primaryEmail,
-          username: clerkUser?.username ?? null,
+          username: preservedUsername,
         },
         { onConflict: "clerk_id" }
       )
-      .select("id")
+      .select("id, username")
       .single();
 
     if (userUpsertError || !userRow) {
@@ -210,6 +222,20 @@ export async function POST(req: Request) {
       return jsonError(502, "Failed to finalize onboarding", "PROFILE_UPDATE_FAILED");
     }
 
+    const claimedUsername = (userRow.username as string | null | undefined)?.trim();
+    if (claimedUsername) {
+      try {
+        await provisionPublicProfile({
+          userId: internalUserId,
+          username: claimedUsername,
+          targetRole: body.targetRole,
+          skills: resumeSkillsFromParsed(body.resumeParsed),
+        });
+      } catch (e) {
+        console.error("[onboarding/complete] provision public profile:", e);
+      }
+    }
+
     const displayName =
       clerkUser?.firstName?.trim() ||
       (clerkUser?.username ? String(clerkUser.username) : "there");
@@ -220,7 +246,7 @@ export async function POST(req: Request) {
           email: primaryEmail,
           name: displayName,
           targetRole: body.targetRole,
-          publicProfileSlug: clerkUser?.username ?? null,
+          publicProfileSlug: claimedUsername ?? clerkUser?.username ?? null,
         },
         roadmapId
       )

@@ -7,8 +7,15 @@ import { usePathname } from "next/navigation";
 const navLink =
   "text-sm text-zinc-400 transition-colors hover:text-zinc-100 data-[active=true]:text-zinc-100";
 
-export function AppHeader() {
+export function AppHeader({
+  profileUsername = null,
+}: {
+  profileUsername?: string | null;
+}) {
   const pathname = usePathname();
+  const profilePath = profileUsername
+    ? `/u/${encodeURIComponent(profileUsername)}`
+    : null;
 
   return (
     <header className="flex flex-wrap items-center justify-between gap-4 border-b border-zinc-900/80 px-4 py-4 sm:px-6">
@@ -34,6 +41,15 @@ export function AppHeader() {
           >
             New project
           </Link>
+          {profilePath ? (
+            <Link
+              href={profilePath}
+              className={navLink}
+              data-active={pathname?.startsWith("/u/") ? "true" : "false"}
+            >
+              Profile
+            </Link>
+          ) : null}
         </nav>
       </div>
       <UserButton afterSignOutUrl="/sign-in" />

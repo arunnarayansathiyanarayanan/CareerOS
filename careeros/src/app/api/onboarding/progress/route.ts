@@ -9,6 +9,7 @@ import {
   type OnboardingTargetRoleDbValue,
 } from "@/lib/onboardingTargetRoleSpec";
 import { USERNAME_REGEX } from "@/lib/username";
+import { provisionPublicProfile } from "@/services/provisionPublicProfile";
 
 export const runtime = "nodejs";
 
@@ -88,6 +89,14 @@ function isYearsOfExperience(v: string): v is YearsOfExperience {
 
 function isAiFluency(v: string): v is AiFluency {
   return (AI_FLUENCY as readonly string[]).includes(v);
+}
+
+function resumeSkillsFromOnboarding(resumeParsed: unknown): string[] {
+  if (resumeParsed === null || resumeParsed === undefined) return [];
+  if (typeof resumeParsed !== "object" || Array.isArray(resumeParsed)) return [];
+  const skills = (resumeParsed as { skills?: unknown }).skills;
+  if (!Array.isArray(skills)) return [];
+  return skills.filter((s): s is string => typeof s === "string" && s.length > 0);
 }
 
 function asUtmParams(raw: unknown): Record<string, string> {
@@ -201,8 +210,11 @@ async function ensureAppUser(
   supabase: SupabaseClient,
   clerkId: string,
   email: string,
-  username: string | null
+  fallbackUsername: string | null
 ): Promise<string> {
+  const existing = await getUserByClerk(supabase, clerkId);
+  const username = existing?.username ?? fallbackUsername;
+
   const { data, error } = await supabase
     .from("users")
     .upsert(
@@ -326,6 +338,30 @@ export async function PATCH(req: Request) {
         return jsonError(502, "Failed to save username", "DATABASE_ERROR");
       }
       appUser = { ...appUser, username: data.username };
+
+      const onboardingForProvision = await getLatestProfile(supabase, appUser.id);
+      const provisionRole =
+        onboardingForProvision?.target_role &&
+        isOnboardingTargetRoleDbValue(onboardingForProvision.target_role)
+          ? onboardingForProvision.target_role
+          : data.targetRole && isOnboardingTargetRoleDbValue(data.targetRole)
+            ? data.targetRole
+            : null;
+
+      if (provisionRole) {
+        try {
+          await provisionPublicProfile({
+            userId: appUser.id,
+            username: data.username,
+            targetRole: provisionRole,
+            skills: resumeSkillsFromOnboarding(
+              onboardingForProvision?.resume_parsed
+            ),
+          });
+        } catch (e) {
+          console.error("[onboarding/progress] provision profile:", e);
+        }
+      }
     }
 
     const existing = await getLatestProfile(supabase, appUser.id);

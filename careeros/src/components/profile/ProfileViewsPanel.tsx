@@ -72,11 +72,9 @@ function formatRelativeTime(iso: string): string {
 }
 
 export function ProfileViewsPanel({ isOwner }: { isOwner: boolean }) {
-  if (!isOwner) return null;
-
   const { data, isLoading, isError } = trpc.profile.getViewStats.useQuery(
     undefined,
-    { refetchInterval: REFETCH_INTERVAL_MS }
+    { enabled: isOwner, refetchInterval: REFETCH_INTERVAL_MS }
   );
 
   const totalViews = data?.totalLast30Days ?? 0;
@@ -101,6 +99,8 @@ export function ProfileViewsPanel({ isOwner }: { isOwner: boolean }) {
 
   const maxCount = Math.max(1, ...viewsBySource.map((row) => row.count));
   const isEmpty = !isLoading && totalViews === 0 && recentViewers.length === 0;
+
+  if (!isOwner) return null;
 
   return (
     <section className="mt-6" aria-label="Profile view analytics">

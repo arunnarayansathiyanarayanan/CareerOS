@@ -1,13 +1,21 @@
-import { AppHeader } from "@/components/dashboard/AppHeader";
+import { auth } from "@clerk/nextjs/server";
 
-export default function DashboardLayout({
+import { AppHeader } from "@/components/dashboard/AppHeader";
+import { getPublicProfileUsernameForClerk } from "@/lib/getPublicProfileForClerk";
+
+export default async function DashboardLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const { userId } = await auth();
+  const profileUsername = userId
+    ? await getPublicProfileUsernameForClerk(userId)
+    : null;
+
   return (
     <div className="dark min-h-full bg-[#0A0A0A] text-zinc-100">
-      <AppHeader />
+      <AppHeader profileUsername={profileUsername} />
       {children}
     </div>
   );
