@@ -8,12 +8,15 @@
     "start": "next start",
     "test": "jest",
     "test:watch": "jest --watch",
+    "test:e3": "vitest run --config vitest.config.ts",
+    "test:e3:watch": "vitest --config vitest.config.ts",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "db:ping": "node --env-file=.env.local scripts/check-db.mjs"
   },
   "dependencies": {
     "@clerk/nextjs": "^7.3.3",
@@ -23,6 +26,7 @@
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.105.4",
     "@vercel/analytics": "^2.0.1",
+    "@vercel/og": "^0.11.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
@@ -72,6 +76,9 @@
     "prettier": "^3.8.3",
     "tailwindcss": "^4",
     "typescript": "^5",
-    "undici": "^6.25.0"
+    "undici": "^6.25.0",
+    "supertest": "^7.1.4",
+    "vitest": "^3.2.4",
+    "@types/supertest": "^6.0.3"
   }
 }

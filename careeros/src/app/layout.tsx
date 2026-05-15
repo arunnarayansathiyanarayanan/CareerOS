@@ -4,6 +4,7 @@ import { Analytics } from "@vercel/analytics/react";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { UtmCaptureRoot } from "@/components/utm-capture-root";
+import { getCareerosPublicHost } from "@/lib/projectsUrls";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -17,6 +18,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(`https://${getCareerosPublicHost()}`),
   title: "CareerOS",
   description: "Career operating system",
 };
