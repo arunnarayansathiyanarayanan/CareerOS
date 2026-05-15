@@ -49,39 +49,38 @@ jest.mock("sonner", () => ({
 }));
 
 function makeRoadmapSupabaseMock() {
+  const chain = {
+    eq: () => chain,
+    order: () => chain,
+    limit: () => chain,
+    maybeSingle: async () => ({ data: null, error: null }),
+    single: async () => ({
+      data: { id: "roadmap-row-1" },
+      error: null,
+    }),
+  };
+
   return {
-    from: () => ({
-      select: () => ({
-        eq: () => ({
-          order: () => ({
-            limit: () => ({
-              maybeSingle: async () => ({ data: null, error: null }),
-            }),
-          }),
-        }),
-      }),
+    from: (table: string) => ({
+      select: () => chain,
       update: () => ({
         eq: () => ({
           eq: async () => ({ error: null }),
         }),
       }),
-      insert: (row: Record<string, unknown>) => ({
-        select: () => ({
-          single: async () => ({
-            data: {
-              id: "roadmap-row-1",
-              user_id: row.user_id,
-              onboarding_profile_id: row.onboarding_profile_id,
-              version: row.version,
-              content: row.content,
-              generated_at: new Date().toISOString(),
-              is_current: true,
-              generation_model: row.generation_model,
-              generation_prompt_version: row.generation_prompt_version,
-            },
-            error: null,
+      insert: () => {
+        const result = { error: null as null };
+        return Object.assign(Promise.resolve(result), {
+          select: () => ({
+            single: async () => ({
+              data: { id: "roadmap-row-1" },
+              error: null,
+            }),
           }),
-        }),
+        });
+      },
+      delete: () => ({
+        eq: async () => ({ error: null }),
       }),
     }),
   };

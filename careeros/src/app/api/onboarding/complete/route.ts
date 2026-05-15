@@ -149,7 +149,6 @@ export async function POST(req: Request) {
       resume_parsed: body.resumeParsed ?? null,
       referral_source: body.referralSource ?? null,
       referral_utm: body.utmParams ?? null,
-      onboarding_completed_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
 
@@ -197,6 +196,20 @@ export async function POST(req: Request) {
     } catch (e) {
       console.error("[onboarding/complete] roadmap generation:", e);
       return jsonError(502, "Failed to save roadmap", "ROADMAP_GENERATION_FAILED");
+    }
+
+    const completedAt = new Date().toISOString();
+    const { error: completeError } = await supabase
+      .from("onboarding_profiles")
+      .update({
+        onboarding_completed_at: completedAt,
+        updated_at: completedAt,
+      })
+      .eq("id", profileId);
+
+    if (completeError) {
+      console.error("[onboarding/complete] mark complete:", completeError);
+      return jsonError(502, "Failed to finalize onboarding", "PROFILE_UPDATE_FAILED");
     }
 
     const displayName =

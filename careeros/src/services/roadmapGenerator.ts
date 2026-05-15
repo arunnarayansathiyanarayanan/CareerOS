@@ -6,6 +6,8 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
 import { getOpenAiModel } from "@/lib/openaiModel";
+import { targetRoleFromOnboardingSelection } from "@/lib/mapOnboardingTargetRole";
+import { persistNormalizedRoadmapSupabase } from "@/services/persistNormalizedRoadmapSupabase";
 
 const ROADMAP_PROMPT_VERSION = "v1";
 const ROADMAP_OPENAI_TIMEOUT_MS = 25_000;
@@ -538,105 +540,30 @@ function assertProfile(profile: OnboardingProfile): void {
   }
 }
 
-function mapRoadmapRow(row: {
-  id: string;
-  user_id: string;
-  onboarding_profile_id: string;
-  version: number;
-  content: unknown;
-  generated_at: string;
-  is_current: boolean;
-  generation_model: string | null;
-  generation_prompt_version: string | null;
-}): Roadmap {
-  const contentResult = roadmapContentSchema.safeParse(row.content);
-  const content = contentResult.success
-    ? contentResult.data
-    : buildFallbackContent({
-        userId: row.user_id,
-        onboardingProfileId: row.onboarding_profile_id,
-        targetRole: "ai_generalist",
-        aiFluency: "not_started",
-      });
-
-  return {
-    id: row.id,
-    userId: row.user_id,
-    onboardingProfileId: row.onboarding_profile_id,
-    version: row.version,
-    content,
-    generatedAt: row.generated_at,
-    isCurrent: row.is_current,
-    generationModel: row.generation_model,
-    generationPromptVersion: row.generation_prompt_version,
-  };
-}
-
-async function nextRoadmapVersion(
-  supabase: SupabaseClient,
-  userId: string
-): Promise<number> {
-  const { data, error } = await supabase
-    .from("roadmaps")
-    .select("version")
-    .eq("user_id", userId)
-    .order("version", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (error) throw error;
-  const max = data?.version;
-  return typeof max === "number" ? max + 1 : 1;
-}
-
 async function insertCurrentRoadmap(
-  supabase: SupabaseClient,
+  _supabase: SupabaseClient,
   profile: OnboardingProfile,
   content: RoadmapContent,
   generationModel: string | null
 ): Promise<Roadmap> {
-  const version = await nextRoadmapVersion(supabase, profile.userId);
-
-  const { error: clearError } = await supabase
-    .from("roadmaps")
-    .update({ is_current: false })
-    .eq("user_id", profile.userId)
-    .eq("is_current", true);
-
-  if (clearError) throw clearError;
-
-  const { data: inserted, error: insertError } = await supabase
-    .from("roadmaps")
-    .insert({
-      user_id: profile.userId,
-      onboarding_profile_id: profile.onboardingProfileId,
-      version,
-      content,
-      is_current: true,
-      generation_model: generationModel,
-      generation_prompt_version: ROADMAP_PROMPT_VERSION,
-    })
-    .select(
-      "id, user_id, onboarding_profile_id, version, content, generated_at, is_current, generation_model, generation_prompt_version"
-    )
-    .single();
-
-  if (insertError) throw insertError;
-  if (!inserted) throw new Error("Roadmap insert returned no row");
-
-  return mapRoadmapRow(
-    inserted as {
-      id: string;
-      user_id: string;
-      onboarding_profile_id: string;
-      version: number;
-      content: unknown;
-      generated_at: string;
-      is_current: boolean;
-      generation_model: string | null;
-      generation_prompt_version: string | null;
-    }
+  const targetRole = targetRoleFromOnboardingSelection(profile.targetRole);
+  const roadmapId = await persistNormalizedRoadmapSupabase(
+    profile.userId,
+    content,
+    targetRole
   );
+
+  return {
+    id: roadmapId,
+    userId: profile.userId,
+    onboardingProfileId: profile.onboardingProfileId,
+    version: 1,
+    content,
+    generatedAt: new Date().toISOString(),
+    isCurrent: true,
+    generationModel,
+    generationPromptVersion: ROADMAP_PROMPT_VERSION,
+  };
 }
 
 function wasTimedOut(error: unknown): boolean {

@@ -283,7 +283,7 @@ export default function OnboardingPage() {
       reset();
       setResumeForComplete(null);
       toast.success("Welcome to CareerOS");
-      router.push("/");
+      router.push("/dashboard");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Save failed");
     } finally {
