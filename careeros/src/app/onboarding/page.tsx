@@ -13,6 +13,10 @@ import {
 } from "@/components/onboarding/StepIdentityConfirm";
 import { StepResumeUpload } from "@/components/onboarding/StepResumeUpload";
 import { StepTargetRole } from "@/components/onboarding/StepTargetRole";
+import {
+  UsernameInput,
+  type UsernameAvailabilityStatus,
+} from "@/components/onboarding/UsernameInput";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -35,7 +39,7 @@ import {
 } from "@/lib/analytics";
 import { useOnboardingStore } from "@/store/onboardingStore";
 
-const TOTAL_STEPS = 6;
+const TOTAL_STEPS = 7;
 
 const YEARS_OPTIONS = [
   { value: "0-1", label: "0–1 years" },
@@ -56,6 +60,7 @@ const AI_FLUENCY_OPTIONS = [
 type ServerProfile = {
   step: number;
   targetRole: string | null;
+  username: string | null;
   currentRole: string | null;
   yearsOfExperience: string | null;
   aiFluency: string | null;
@@ -68,6 +73,7 @@ type ServerProfile = {
 function buildProgressPatchBody(state: ReturnType<typeof useOnboardingStore.getState>) {
   const data: Record<string, unknown> = {};
   if (state.targetRole) data.targetRole = state.targetRole;
+  if (state.username) data.username = state.username;
   if (state.currentRole !== null) data.currentRole = state.currentRole;
   if (state.yearsOfExperience) data.yearsOfExperience = state.yearsOfExperience;
   if (state.aiFluency) data.aiFluency = state.aiFluency;
@@ -101,6 +107,7 @@ const slideTransition = { duration: 0.22, ease: [0.22, 1, 0.36, 1] as const };
 export default function OnboardingPage() {
   const router = useRouter();
   const step = useOnboardingStore((s) => s.step);
+  const username = useOnboardingStore((s) => s.username);
   const currentRole = useOnboardingStore((s) => s.currentRole);
   const yearsOfExperience = useOnboardingStore((s) => s.yearsOfExperience);
   const aiFluency = useOnboardingStore((s) => s.aiFluency);
@@ -118,6 +125,8 @@ export default function OnboardingPage() {
 
   const [hydrated, setHydrated] = useState(false);
   const [resumeReady, setResumeReady] = useState(false);
+  const [usernameStatus, setUsernameStatus] =
+    useState<UsernameAvailabilityStatus>("idle");
   const [submitting, setSubmitting] = useState(false);
   const [roadmapCreated, setRoadmapCreated] = useState(false);
   const [resumeForComplete, setResumeForComplete] =
@@ -250,13 +259,13 @@ export default function OnboardingPage() {
         });
         clearSessionAttribution();
         try {
-          await patchProgress(6);
+          await patchProgress(7);
         } catch (e) {
           toast.error(e instanceof Error ? e.message : "Could not save progress");
         }
         setRoadmapCreated(true);
       }
-      setStep(6);
+      setStep(7);
     },
     [roadmapCreated, startedAt, clearSessionAttribution, setStep]
   );
@@ -271,7 +280,7 @@ export default function OnboardingPage() {
       const res = await fetch("/api/onboarding/progress", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ step: 6, data }),
+        body: JSON.stringify({ step: 7, data }),
       });
       if (!res.ok && res.status !== 401) {
         const body = await res.json().catch(() => ({}));
@@ -301,8 +310,10 @@ export default function OnboardingPage() {
     );
   }
 
-  const canAdvanceStep2 = Boolean((currentRole ?? "").trim());
-  const canAdvanceStep3 = Boolean(yearsOfExperience);
+  const canAdvanceStep2 =
+    usernameStatus === "available" && Boolean((username ?? "").trim());
+  const canAdvanceStep3 = Boolean((currentRole ?? "").trim());
+  const canAdvanceStep4 = Boolean(yearsOfExperience);
 
   return (
     <div className="flex w-full max-w-lg flex-col items-stretch">
@@ -339,16 +350,16 @@ export default function OnboardingPage() {
           >
             <div>
               <h1 className="text-2xl font-semibold tracking-tight text-zinc-100">
-                Current role
+                Claim your username
               </h1>
               <p className="mt-2 text-sm text-zinc-500">
-                A short title is enough (e.g. &ldquo;Senior PM&rdquo;).
+                This is your public profile URL on CareerOS.
               </p>
             </div>
-            <CurrentRoleAutocompleteField
-              placeholder="Your current role"
-              inputClassName="border-zinc-700 bg-zinc-900/80 text-zinc-100 placeholder:text-zinc-600"
-              showChevron={false}
+            <UsernameInput
+              value={username ?? ""}
+              onChange={(v) => setField("username", v)}
+              onStatusChange={setUsernameStatus}
             />
             <StepNav
               canNext={canAdvanceStep2}
@@ -361,6 +372,36 @@ export default function OnboardingPage() {
         {step === 3 && (
           <motion.div
             key="step-3"
+            className="flex flex-col gap-6"
+            initial={{ opacity: 0, x: 28 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -28 }}
+            transition={slideTransition}
+          >
+            <div>
+              <h1 className="text-2xl font-semibold tracking-tight text-zinc-100">
+                Current role
+              </h1>
+              <p className="mt-2 text-sm text-zinc-500">
+                A short title is enough (e.g. &ldquo;Senior PM&rdquo;).
+              </p>
+            </div>
+            <CurrentRoleAutocompleteField
+              placeholder="Your current role"
+              inputClassName="border-zinc-700 bg-zinc-900/80 text-zinc-100 placeholder:text-zinc-600"
+              showChevron={false}
+            />
+            <StepNav
+              canNext={canAdvanceStep3}
+              onNext={advance}
+              onBack={goBack}
+            />
+          </motion.div>
+        )}
+
+        {step === 4 && (
+          <motion.div
+            key="step-4"
             className="flex flex-col gap-6"
             initial={{ opacity: 0, x: 28 }}
             animate={{ opacity: 1, x: 0 }}
@@ -391,16 +432,16 @@ export default function OnboardingPage() {
               </SelectContent>
             </Select>
             <StepNav
-              canNext={canAdvanceStep3}
+              canNext={canAdvanceStep4}
               onNext={advance}
               onBack={goBack}
             />
           </motion.div>
         )}
 
-        {step === 4 && (
+        {step === 5 && (
           <motion.div
-            key="step-4"
+            key="step-5"
             className="flex flex-col gap-6"
             initial={{ opacity: 0, x: 28 }}
             animate={{ opacity: 1, x: 0 }}
@@ -458,9 +499,9 @@ export default function OnboardingPage() {
           </motion.div>
         )}
 
-        {step === 5 && (
+        {step === 6 && (
           <motion.div
-            key="step-5"
+            key="step-6"
             className="flex flex-col gap-6"
             initial={{ opacity: 0, x: 28 }}
             animate={{ opacity: 1, x: 0 }}
@@ -476,9 +517,9 @@ export default function OnboardingPage() {
           </motion.div>
         )}
 
-        {step === 6 && (
+        {step === 7 && (
           <motion.div
-            key="step-6"
+            key="step-7"
             className="flex flex-col gap-6"
             initial={{ opacity: 0, x: 28 }}
             animate={{ opacity: 1, x: 0 }}

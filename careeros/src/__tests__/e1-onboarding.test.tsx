@@ -1,7 +1,7 @@
 /** @jest-environment jsdom */
 
 import { describe, it, expect, jest, beforeEach, afterEach } from "@jest/globals";
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import React from "react";
 
@@ -50,7 +50,7 @@ jest.mock("sonner", () => ({
 
 async function importGenerateRoadmap(openaiChatCompletionsCreate: jest.Mock) {
   jest.resetModules();
-  const nodeUtil = require("node:util") as typeof import("node:util");
+  const nodeUtil = await import("node:util");
   globalThis.structuredClone =
     nodeUtil.structuredClone ??
     ((value: unknown) => JSON.parse(JSON.stringify(value)) as never);

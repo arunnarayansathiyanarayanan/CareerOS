@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/react";
+import { TrpcProvider } from "@/components/providers/trpc-provider";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { UtmCaptureRoot } from "@/components/utm-capture-root";
@@ -37,16 +38,18 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         <ClerkProvider>
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="system"
-            enableSystem
-            disableTransitionOnChange
-          >
-            <UtmCaptureRoot />
-            {children}
-            <Toaster />
-          </ThemeProvider>
+          <TrpcProvider>
+            <ThemeProvider
+              attribute="class"
+              defaultTheme="system"
+              enableSystem
+              disableTransitionOnChange
+            >
+              <UtmCaptureRoot />
+              {children}
+              <Toaster />
+            </ThemeProvider>
+          </TrpcProvider>
           <Analytics />
         </ClerkProvider>
       </body>

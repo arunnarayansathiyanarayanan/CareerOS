@@ -118,9 +118,10 @@ export function trackRoadmapGenerationFailed(props: RoadmapGenerationFailedProps
 
 export const ONBOARDING_STEP_NAMES: Record<number, string> = {
   1: "target_role",
-  2: "current_role",
-  3: "years_of_experience",
-  4: "ai_fluency",
-  5: "identity_confirm",
-  6: "referral_source",
+  2: "claim_username",
+  3: "current_role",
+  4: "years_of_experience",
+  5: "ai_fluency",
+  6: "identity_confirm",
+  7: "referral_source",
 };

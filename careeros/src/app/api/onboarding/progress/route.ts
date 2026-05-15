@@ -8,6 +8,7 @@ import {
   ONBOARDING_TARGET_ROLE_ASSIGNABLE,
   type OnboardingTargetRoleDbValue,
 } from "@/lib/onboardingTargetRoleSpec";
+import { USERNAME_REGEX } from "@/lib/username";
 
 export const runtime = "nodejs";
 
@@ -28,6 +29,7 @@ export type AiFluency = (typeof AI_FLUENCY)[number];
 export interface OnboardingProfile {
   step: number;
   targetRole: TargetRole | null;
+  username: string | null;
   currentRole: string | null;
   yearsOfExperience: YearsOfExperience | null;
   aiFluency: AiFluency | null;
@@ -98,11 +100,15 @@ function asUtmParams(raw: unknown): Record<string, string> {
   return out;
 }
 
-function rowToProfile(row: OnboardingRow): OnboardingProfile {
+function rowToProfile(
+  row: OnboardingRow,
+  username: string | null
+): OnboardingProfile {
   const tr = row.target_role;
   return {
     step: row.onboarding_step ?? 1,
     targetRole: isOnboardingTargetRoleDbValue(tr) ? tr : null,
+    username,
     currentRole: row.current_role,
     yearsOfExperience:
       row.years_of_experience && isYearsOfExperience(row.years_of_experience)
@@ -122,6 +128,15 @@ function rowToProfile(row: OnboardingRow): OnboardingProfile {
 const partialProfileSchema = z
   .object({
     targetRole: z.enum(ONBOARDING_TARGET_ROLE_ASSIGNABLE).nullable().optional(),
+    username: z
+      .string()
+      .trim()
+      .toLowerCase()
+      .min(3)
+      .max(24)
+      .regex(USERNAME_REGEX)
+      .nullable()
+      .optional(),
     currentRole: z.string().nullable().optional(),
     yearsOfExperience: z.enum(YEARS_OF_EXPERIENCE).nullable().optional(),
     aiFluency: z.enum(AI_FLUENCY).nullable().optional(),
@@ -164,18 +179,22 @@ function partialToRowUpdate(
   return row;
 }
 
-async function getUserIdByClerk(
+async function getUserByClerk(
   supabase: SupabaseClient,
   clerkId: string
-): Promise<string | null> {
+): Promise<{ id: string; username: string | null } | null> {
   const { data, error } = await supabase
     .from("users")
-    .select("id")
+    .select("id, username")
     .eq("clerk_id", clerkId)
     .maybeSingle();
 
   if (error) throw error;
-  return (data?.id as string | undefined) ?? null;
+  if (!data?.id) return null;
+  return {
+    id: data.id as string,
+    username: (data.username as string | null | undefined) ?? null,
+  };
 }
 
 async function ensureAppUser(
@@ -223,15 +242,15 @@ export async function GET() {
     }
 
     const supabase = getSupabaseAdmin();
-    const appUserId = await getUserIdByClerk(supabase, userId);
-    if (!appUserId) {
+    const appUser = await getUserByClerk(supabase, userId);
+    if (!appUser) {
       return NextResponse.json({ profile: null });
     }
 
-    const row = await getLatestProfile(supabase, appUserId);
+    const row = await getLatestProfile(supabase, appUser.id);
 
     return NextResponse.json({
-      profile: row ? rowToProfile(row) : null,
+      profile: row ? rowToProfile(row, appUser.username) : null,
     });
   } catch (e) {
     console.error("[onboarding/progress] GET:", e);
@@ -268,8 +287,8 @@ export async function PATCH(req: Request) {
     const now = new Date().toISOString();
 
     const supabase = getSupabaseAdmin();
-    let appUserId = await getUserIdByClerk(supabase, userId);
-    if (!appUserId) {
+    let appUser = await getUserByClerk(supabase, userId);
+    if (!appUser) {
       const clerkUser = await currentUser();
       const primaryEmail =
         clerkUser?.primaryEmailAddress?.emailAddress ??
@@ -281,15 +300,35 @@ export async function PATCH(req: Request) {
           "MISSING_EMAIL"
         );
       }
-      appUserId = await ensureAppUser(
+      const newUserId = await ensureAppUser(
         supabase,
         userId,
         primaryEmail,
         clerkUser?.username ?? null
       );
+      appUser = { id: newUserId, username: clerkUser?.username ?? null };
     }
 
-    const existing = await getLatestProfile(supabase, appUserId);
+    if (data.username !== undefined && data.username !== null) {
+      const { error: usernameError } = await supabase
+        .from("users")
+        .update({ username: data.username, updated_at: now })
+        .eq("id", appUser.id);
+      if (usernameError) {
+        console.error("[onboarding/progress] username update:", usernameError);
+        if (usernameError.code === "23505") {
+          return jsonError(
+            409,
+            "That username is already taken",
+            "USERNAME_TAKEN"
+          );
+        }
+        return jsonError(502, "Failed to save username", "DATABASE_ERROR");
+      }
+      appUser = { ...appUser, username: data.username };
+    }
+
+    const existing = await getLatestProfile(supabase, appUser.id);
 
     if (existing) {
       const { error } = await supabase
@@ -316,7 +355,7 @@ export async function PATCH(req: Request) {
       }
 
       const { error } = await supabase.from("onboarding_profiles").insert({
-        user_id: appUserId,
+        user_id: appUser.id,
         onboarding_step: step,
         target_role: insertTarget,
         current_role: rowPatch.current_role ?? null,

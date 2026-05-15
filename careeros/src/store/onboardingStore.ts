@@ -22,6 +22,7 @@ const serverStorage: StateStorage = {
 
 const STRING_FIELDS = [
   "targetRole",
+  "username",
   "currentRole",
   "yearsOfExperience",
   "aiFluency",
@@ -37,6 +38,7 @@ function isStringField(field: string): field is StringField {
 export interface OnboardingState {
   step: number;
   targetRole: string | null;
+  username: string | null;
   currentRole: string | null;
   yearsOfExperience: string | null;
   aiFluency: string | null;
@@ -58,6 +60,7 @@ export interface OnboardingState {
   applyServerProgress: (profile: {
     step: number;
     targetRole: string | null;
+    username: string | null;
     currentRole: string | null;
     yearsOfExperience: string | null;
     aiFluency: string | null;
@@ -73,6 +76,7 @@ export interface OnboardingState {
 const initialData = {
   step: 1,
   targetRole: null,
+  username: null,
   currentRole: null,
   yearsOfExperience: null,
   aiFluency: null,
@@ -133,8 +137,9 @@ export const useOnboardingStore = create<OnboardingState>()(
 
       applyServerProgress: (profile) =>
         set((draft) => {
-          draft.step = Math.max(1, Math.min(6, profile.step));
+          draft.step = Math.max(1, Math.min(7, profile.step));
           if (profile.targetRole !== null) draft.targetRole = profile.targetRole;
+          if (profile.username !== null) draft.username = profile.username;
           if (profile.currentRole !== null) draft.currentRole = profile.currentRole;
           if (profile.yearsOfExperience !== null) {
             draft.yearsOfExperience = profile.yearsOfExperience;
@@ -162,6 +167,7 @@ export const useOnboardingStore = create<OnboardingState>()(
         set((draft) => {
           draft.step = initialData.step;
           draft.targetRole = initialData.targetRole;
+          draft.username = initialData.username;
           draft.currentRole = initialData.currentRole;
           draft.yearsOfExperience = initialData.yearsOfExperience;
           draft.aiFluency = initialData.aiFluency;
