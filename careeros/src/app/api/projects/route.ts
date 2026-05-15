@@ -20,6 +20,10 @@ import {
   toProjectJson,
 } from "@/lib/projectsApiShared";
 import { projectPublicDisplayUrl } from "@/lib/projectsUrls";
+import {
+  maybeAutoPinFirstPublishedProject,
+  syncProfileSkillGraphFromStacks,
+} from "@/services/syncProfileSkillGraph";
 
 export const runtime = "nodejs";
 
@@ -305,6 +309,14 @@ export async function POST(req: Request) {
     const stackSnapshot = aiStackForInsert;
     const titleSnapshot = data.title;
     const problemSnapshot = data.problem_solved;
+
+    await syncProfileSkillGraphFromStacks(appUser.id, [stackSnapshot]);
+    await maybeAutoPinFirstPublishedProject(
+      appUser.id,
+      projectId,
+      data.privacy_mode
+    );
+
     void (async () => {
       try {
         const tags = await autoTagSkills(
@@ -316,6 +328,10 @@ export async function POST(req: Request) {
           .update(projects)
           .set({ autoTags: tags })
           .where(eq(projects.id, projectId));
+        await syncProfileSkillGraphFromStacks(appUser.id, [
+          stackSnapshot,
+          tags,
+        ]);
       } catch (e) {
         console.error("[projects POST] autoTagSkills background update", e);
       }

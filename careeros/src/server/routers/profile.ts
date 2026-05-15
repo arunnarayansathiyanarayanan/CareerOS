@@ -28,6 +28,10 @@ import { users } from "@/db/schema/users";
 import { getClerkAppSession } from "@/lib/auth";
 import { tryAcquireProfileViewDedupSlot } from "@/lib/redis-profile-views";
 import { updateProfileInputSchema } from "@/lib/validators/profile";
+import {
+  maybeAutoPinFirstPublishedProject,
+  reconcileProfileSkillGraphFromPublishedProjects,
+} from "@/services/syncProfileSkillGraph";
 
 import { protectedProcedure, publicProcedure, router } from "../trpc";
 
@@ -197,8 +201,41 @@ async function loadProfilePublicBundle(
     }
   }
 
-  const pinnedIds = prof.pinnedProjectIds ?? [];
+  let pinnedIds = prof.pinnedProjectIds ?? [];
   let pinnedProjects: ProfilePinnedProjectDTO[] = [];
+
+  if (pinnedIds.length === 0) {
+    const [firstPublished] = await db
+      .select({
+        id: projects.id,
+        privacyMode: projects.privacyMode,
+      })
+      .from(projects)
+      .where(
+        and(
+          eq(projects.userId, prof.userId),
+          eq(projects.isDeleted, false),
+          isNotNull(projects.publishedAt),
+          inArray(projects.privacyMode, ["public", "unlisted"])
+        )
+      )
+      .orderBy(desc(projects.publishedAt))
+      .limit(1);
+
+    if (firstPublished) {
+      await maybeAutoPinFirstPublishedProject(
+        prof.userId,
+        firstPublished.id,
+        firstPublished.privacyMode
+      );
+      const [refreshed] = await db
+        .select({ pinnedProjectIds: profiles.pinnedProjectIds })
+        .from(profiles)
+        .where(eq(profiles.id, prof.id))
+        .limit(1);
+      pinnedIds = refreshed?.pinnedProjectIds ?? [];
+    }
+  }
 
   if (pinnedIds.length > 0) {
     const rows = await db
@@ -236,7 +273,7 @@ async function loadProfilePublicBundle(
     }));
   }
 
-  const graphRows = await db
+  let graphRows = await db
     .select({
       skill: skillGraphEntries.skill,
       source: skillGraphEntries.source,
@@ -244,6 +281,18 @@ async function loadProfilePublicBundle(
     })
     .from(skillGraphEntries)
     .where(eq(skillGraphEntries.profileId, prof.id));
+
+  if (graphRows.length === 0) {
+    await reconcileProfileSkillGraphFromPublishedProjects(prof.userId);
+    graphRows = await db
+      .select({
+        skill: skillGraphEntries.skill,
+        source: skillGraphEntries.source,
+        proficiency: skillGraphEntries.proficiency,
+      })
+      .from(skillGraphEntries)
+      .where(eq(skillGraphEntries.profileId, prof.id));
+  }
 
   graphRows.sort((a, b) => {
     const wa = SKILL_SOURCE_WEIGHT[a.source] ?? 0;

@@ -7,6 +7,7 @@ import { isSkillOntologyValue } from "@/lib/constants/skillOntology";
 import { getDb } from "@/db";
 import { projectTemplates, projects, recruiterShareTokens } from "@/db/schema/projects";
 import { toProjectJson } from "@/lib/projectsApiShared";
+import { reconcileProfileSkillGraphFromPublishedProjects } from "@/services/syncProfileSkillGraph";
 
 export const runtime = "nodejs";
 
@@ -135,6 +136,16 @@ export async function PATCH(req: Request, context: RouteContext) {
 
     if (!updated) {
       return jsonErr(500, { error: "Update failed", code: "INTERNAL_ERROR" });
+    }
+
+    if (
+      updated.publishedAt &&
+      patch.ai_stack !== undefined &&
+      !sameStringArray(patch.ai_stack, row.aiStack)
+    ) {
+      void reconcileProfileSkillGraphFromPublishedProjects(appUser.id).catch(
+        (e) => console.error("[projects/:id PATCH] skill graph sync", e)
+      );
     }
 
     return NextResponse.json({ project: toProjectJson(updated) });
