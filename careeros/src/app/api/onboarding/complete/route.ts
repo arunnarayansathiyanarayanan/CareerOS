@@ -3,6 +3,7 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { after, NextResponse } from "next/server";
 import { z } from "zod";
 
+import { roadmapModelRoleFromSelection } from "@/lib/e1OnboardingRouting";
 import { setOnboardingGateCookie } from "@/lib/onboardingMiddlewareCache";
 import { sendWelcomeEmail } from "@/services/notifications";
 
@@ -38,8 +39,6 @@ const completeBodySchema = z.object({
   utmParams: z.record(z.string(), z.string()).optional(),
 });
 
-type CompleteBody = z.infer<typeof completeBodySchema>;
-
 function jsonError(
   status: number,
   error: string,
@@ -63,10 +62,6 @@ function getSupabaseAdmin(): SupabaseClient {
     );
   }
   return createClient(url, key);
-}
-
-function roadmapRoutingRole(targetRole: CompleteBody["targetRole"]): string {
-  return targetRole === "other" ? "ai_generalist" : targetRole;
 }
 
 function asResumeParsed(raw: unknown): ResumeParsed | undefined {
@@ -108,7 +103,7 @@ export async function POST(req: Request) {
     const body = parsed.data;
 
     const supabase = getSupabaseAdmin();
-    const routingRole = roadmapRoutingRole(body.targetRole);
+    const routingRole = roadmapModelRoleFromSelection(body.targetRole);
 
     const { data: userRow, error: userUpsertError } = await supabase
       .from("users")

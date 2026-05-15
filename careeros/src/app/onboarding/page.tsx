@@ -165,6 +165,11 @@ export default function OnboardingPage() {
         }
         const json: { profile: ServerProfile | null } = await res.json();
         const profile = json.profile;
+        if (profile?.onboardingCompletedAt) {
+          setResumeReady(true);
+          router.replace("/dashboard");
+          return;
+        }
         if (
           profile &&
           profile.onboardingCompletedAt === null &&
@@ -408,7 +413,7 @@ export default function OnboardingPage() {
                 AI fluency
               </h1>
               <p className="mt-2 text-sm text-zinc-500">
-                Optional: upload your resume on this step so we can tailor your roadmap.
+                Pick where you are with AI (required). Optionally upload your resume so we can tailor your roadmap.
               </p>
             </div>
             <Select
@@ -428,6 +433,11 @@ export default function OnboardingPage() {
             </Select>
             <StepResumeUpload
               continueExtraDisabled={!aiFluency}
+              continueBlockedHint={
+                aiFluency
+                  ? null
+                  : "Choose “Where are you today?” above — then Continue unlocks."
+              }
               onBack={goBack}
               onContinue={advance}
               onResumeDataChange={(data) => {

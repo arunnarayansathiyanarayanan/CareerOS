@@ -110,12 +110,15 @@ export function StepResumeUpload({
   onContinue,
   onBack,
   continueExtraDisabled = false,
+  continueBlockedHint,
 }: {
   onResumeDataChange: (data: ResumeSubmissionData) => void;
   onContinue: () => void;
   onBack?: () => void;
   /** When true, disables Continue (e.g. until another field on the same step is valid). */
   continueExtraDisabled?: boolean;
+  /** Shown when Continue is blocked only by `continueExtraDisabled` (e.g. resume OK but another field missing). */
+  continueBlockedHint?: string | null;
 }) {
   const resumeFile = useOnboardingStore((s) => s.resumeFile);
   const setResumeFile = useOnboardingStore((s) => s.setResumeFile);
@@ -244,6 +247,8 @@ export function StepResumeUpload({
 
   const uploadSucceeded = Boolean(resumeUrl && resumeParsed);
   const canContinue = uploadSucceeded || skipped;
+  const blockedOnlyByExtra =
+    canContinue && continueExtraDisabled && Boolean(continueBlockedHint);
 
   useEffect(() => {
     const skillCount =
@@ -407,14 +412,21 @@ export function StepResumeUpload({
         ) : (
           <span aria-hidden className="hidden sm:block" />
         )}
-        <Button
-          type="button"
-          className="h-9 w-full bg-[#E5FF47] text-sm font-medium text-[#111] transition-[opacity,transform,box-shadow] duration-200 ease-out hover:bg-[#d8f542] hover:opacity-100 sm:ml-auto sm:min-w-[120px] sm:w-auto"
-          disabled={!canContinue || continueExtraDisabled}
-          onClick={() => void onContinue()}
-        >
-          Continue
-        </Button>
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:items-end">
+          {blockedOnlyByExtra ? (
+            <p className="text-right text-sm text-amber-400/90 sm:max-w-[280px]" role="status">
+              {continueBlockedHint}
+            </p>
+          ) : null}
+          <Button
+            type="button"
+            className="h-9 w-full bg-[#E5FF47] text-sm font-medium text-[#111] transition-[opacity,transform,box-shadow] duration-200 ease-out hover:bg-[#d8f542] hover:opacity-100 sm:ml-auto sm:min-w-[120px] sm:w-auto"
+            disabled={!canContinue || continueExtraDisabled}
+            onClick={() => void onContinue()}
+          >
+            Continue
+          </Button>
+        </div>
       </div>
     </div>
   );

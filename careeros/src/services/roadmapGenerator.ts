@@ -1,13 +1,14 @@
-import Anthropic, {
+import OpenAI, {
   APIConnectionTimeoutError,
   APIUserAbortError,
-} from "@anthropic-ai/sdk";
+} from "openai";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
-const ROADMAP_MODEL = "claude-sonnet-4-20250514";
+import { getOpenAiModel } from "@/lib/openaiModel";
+
 const ROADMAP_PROMPT_VERSION = "v1";
-const CLAUDE_TIMEOUT_MS = 25_000;
+const ROADMAP_OPENAI_TIMEOUT_MS = 25_000;
 const MAX_TOKENS = 4000;
 
 const ROADMAP_SYSTEM_PROMPT =
@@ -195,13 +196,13 @@ const AI_GENERALIST_STARTER_TEMPLATE: RoadmapContent = {
           status: "not_started",
           resources: [
             {
-              title: "Anthropic API overview",
-              url: "https://docs.anthropic.com/en/api/getting-started",
+              title: "OpenAI API quickstart",
+              url: "https://platform.openai.com/docs/quickstart",
               type: "docs",
             },
             {
-              title: "OpenAI API quickstart",
-              url: "https://platform.openai.com/docs/quickstart",
+              title: "OpenAI Chat Completions reference",
+              url: "https://platform.openai.com/docs/api-reference/chat/create",
               type: "docs",
             },
           ],
@@ -218,8 +219,8 @@ const AI_GENERALIST_STARTER_TEMPLATE: RoadmapContent = {
           status: "not_started",
           resources: [
             {
-              title: "Anthropic prompt engineering overview",
-              url: "https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/overview",
+              title: "OpenAI prompt engineering guide",
+              url: "https://platform.openai.com/docs/guides/prompt-engineering",
               type: "docs",
             },
             {
@@ -241,7 +242,7 @@ const AI_GENERALIST_STARTER_TEMPLATE: RoadmapContent = {
           status: "not_started",
           problemStatement:
             "You need a repeatable way to summarize technical topics with consistent structure and guardrails.",
-          techStack: ["TypeScript", "Anthropic or OpenAI SDK", "dotenv"],
+          techStack: ["TypeScript", "OpenAI SDK", "dotenv"],
           successCriteria: [
             "Accepts a topic string and optional depth flag",
             "Uses environment variables for API keys",
@@ -350,8 +351,8 @@ const AI_GENERALIST_STARTER_TEMPLATE: RoadmapContent = {
           status: "not_started",
           resources: [
             {
-              title: "Anthropic safety best practices (overview)",
-              url: "https://docs.anthropic.com/en/docs/test-and-evaluate",
+              title: "OpenAI moderation guide",
+              url: "https://platform.openai.com/docs/guides/moderation",
               type: "docs",
             },
             {
@@ -486,16 +487,17 @@ Leverage their existing strengths. Skip concepts they already clearly know. Acce
   return prompt;
 }
 
-async function callClaudeRawText(
+async function callOpenAiRoadmapRawText(
   profile: OnboardingProfile,
   timeoutMs: number | null
 ): Promise<string> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
-    throw new Error("MISSING_ANTHROPIC_API_KEY");
+    throw new Error("MISSING_OPENAI_API_KEY");
   }
 
-  const client = new Anthropic({ apiKey });
+  const model = getOpenAiModel();
+  const client = new OpenAI({ apiKey });
   const controller = new AbortController();
   const timer =
     timeoutMs != null
@@ -503,18 +505,19 @@ async function callClaudeRawText(
       : undefined;
 
   try {
-    const message = await client.messages.create(
+    const completion = await client.chat.completions.create(
       {
-        model: ROADMAP_MODEL,
+        model,
         max_tokens: MAX_TOKENS,
-        system: ROADMAP_SYSTEM_PROMPT,
-        messages: [{ role: "user", content: buildUserPrompt(profile) }],
+        response_format: { type: "json_object" },
+        messages: [
+          { role: "system", content: ROADMAP_SYSTEM_PROMPT },
+          { role: "user", content: buildUserPrompt(profile) },
+        ],
       },
       { signal: controller.signal }
     );
-    const block = message.content.find((b) => b.type === "text");
-    const text = block && block.type === "text" ? block.text : "";
-    return text;
+    return completion.choices[0]?.message?.content?.trim() ?? "";
   } finally {
     if (timer) clearTimeout(timer);
   }
@@ -646,25 +649,30 @@ function wasTimedOut(error: unknown): boolean {
   return false;
 }
 
-function scheduleBackgroundClaudeRetry(profile: OnboardingProfile): void {
+function scheduleBackgroundOpenAiRetry(profile: OnboardingProfile): void {
   void (async () => {
     try {
-      const raw = await callClaudeRawText(profile, null);
+      const raw = await callOpenAiRoadmapRawText(profile, null);
       const content = parseAndValidateRoadmapContent(raw);
       if (!content) return;
 
       const supabase = getSupabaseAdmin();
-      await insertCurrentRoadmap(supabase, profile, content, ROADMAP_MODEL);
+      await insertCurrentRoadmap(
+        supabase,
+        profile,
+        content,
+        getOpenAiModel()
+      );
     } catch (e) {
-      console.error("[roadmapGenerator] background Claude retry failed:", e);
+      console.error("[roadmapGenerator] background OpenAI retry failed:", e);
     }
   })();
 }
 
 /**
- * Generates an initial roadmap via Claude, validates JSON, persists to \`roadmaps\`,
+ * Generates an initial roadmap via OpenAI, validates JSON, persists to \`roadmaps\`,
  * and marks the new row \`is_current = true\` (previous rows for the user unset).
- * On Claude timeout: returns the AI Generalist starter template immediately and
+ * On OpenAI timeout: returns the AI Generalist starter template immediately and
  * retries generation in the background; a successful retry inserts a new current roadmap.
  */
 export async function generateInitialRoadmap(
@@ -674,11 +682,14 @@ export async function generateInitialRoadmap(
   const supabase = getSupabaseAdmin();
 
   let content: RoadmapContent;
-  let generationModel: string | null = ROADMAP_MODEL;
+  let generationModel: string | null = getOpenAiModel();
   let timedOut = false;
 
   try {
-    const raw = await callClaudeRawText(profile, CLAUDE_TIMEOUT_MS);
+    const raw = await callOpenAiRoadmapRawText(
+      profile,
+      ROADMAP_OPENAI_TIMEOUT_MS
+    );
     const parsed = parseAndValidateRoadmapContent(raw);
     if (parsed) {
       content = parsed;
@@ -692,7 +703,7 @@ export async function generateInitialRoadmap(
       content = buildFallbackContent(profile);
       generationModel = null;
     } else {
-      console.error("[roadmapGenerator] Claude request failed:", e);
+      console.error("[roadmapGenerator] OpenAI request failed:", e);
       content = buildFallbackContent(profile);
       generationModel = null;
     }
@@ -706,7 +717,7 @@ export async function generateInitialRoadmap(
   );
 
   if (timedOut) {
-    scheduleBackgroundClaudeRetry(profile);
+    scheduleBackgroundOpenAiRetry(profile);
   }
 
   return roadmap;

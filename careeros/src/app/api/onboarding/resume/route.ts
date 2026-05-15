@@ -1,9 +1,11 @@
-import Anthropic from "@anthropic-ai/sdk";
 import { auth } from "@clerk/nextjs/server";
+import OpenAI from "openai";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import mammoth from "mammoth";
 import { PDFParse } from "pdf-parse";
 import { NextResponse } from "next/server";
+
+import { getOpenAiModel } from "@/lib/openaiModel";
 
 export const runtime = "nodejs";
 
@@ -190,12 +192,12 @@ export async function POST(req: Request) {
       );
     }
 
-    const apiKey = process.env.ANTHROPIC_API_KEY;
+    const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
       return jsonError(
         500,
         "Server misconfiguration",
-        "MISSING_ANTHROPIC_API_KEY"
+        "MISSING_OPENAI_API_KEY"
       );
     }
 
@@ -210,19 +212,22 @@ export async function POST(req: Request) {
 }
 Resume text: ${text}`;
 
-    const client = new Anthropic({ apiKey });
+    const client = new OpenAI({ apiKey });
+    const model = getOpenAiModel();
     let rawAssistant = "";
     try {
-      const message = await client.messages.create({
-        model: "claude-sonnet-4-20250514",
+      const completion = await client.chat.completions.create({
+        model,
         max_tokens: 8192,
-        system: SYSTEM_PROMPT,
-        messages: [{ role: "user", content: userPrompt }],
+        response_format: { type: "json_object" },
+        messages: [
+          { role: "system", content: SYSTEM_PROMPT },
+          { role: "user", content: userPrompt },
+        ],
       });
-      const block = message.content.find((b) => b.type === "text");
-      rawAssistant = block && block.type === "text" ? block.text : "";
+      rawAssistant = completion.choices[0]?.message?.content?.trim() ?? "";
     } catch (e) {
-      console.error("[resume] Claude API:", e);
+      console.error("[resume] OpenAI API:", e);
       return jsonError(502, "Resume parsing service failed", "LLM_ERROR");
     }
 

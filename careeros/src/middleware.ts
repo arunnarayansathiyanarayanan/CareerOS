@@ -6,6 +6,7 @@ import {
   CAREEROS_REF_COOKIE_NAME,
   UTM_PARAM_KEYS,
 } from "@/lib/careerosAttribution";
+import { signInRedirectUrlForOnboarding } from "@/lib/e1OnboardingRouting";
 import { getOnboardingGateForClerk } from "@/lib/getOnboardingGateForClerk";
 import {
   CAREEROS_ONBOARDING_GATE_COOKIE,
@@ -74,9 +75,7 @@ export default clerkMiddleware(
     if (isOnboardingPath(pathname)) {
       const { userId } = await auth();
       if (!userId) {
-        const url = new URL("/sign-in", request.url);
-        url.searchParams.set("redirect_url", "/onboarding");
-        const res = NextResponse.redirect(url);
+        const res = NextResponse.redirect(signInRedirectUrlForOnboarding(request.url));
         attachUtmRefCookie(request, res);
         return res;
       }
