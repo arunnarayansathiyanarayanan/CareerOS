@@ -133,7 +133,7 @@ export const useOnboardingStore = create<OnboardingState>()(
 
       applyServerProgress: (profile) =>
         set((draft) => {
-          draft.step = Math.max(1, Math.min(5, profile.step));
+          draft.step = Math.max(1, Math.min(6, profile.step));
           if (profile.targetRole !== null) draft.targetRole = profile.targetRole;
           if (profile.currentRole !== null) draft.currentRole = profile.currentRole;
           if (profile.yearsOfExperience !== null) {

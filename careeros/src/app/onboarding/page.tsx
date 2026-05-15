@@ -1,12 +1,17 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { track } from "@vercel/analytics";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
+import {
+  StepIdentityConfirm,
+  type ResumeCompletePayload,
+} from "@/components/onboarding/StepIdentityConfirm";
+import { StepResumeUpload } from "@/components/onboarding/StepResumeUpload";
+import { StepTargetRole } from "@/components/onboarding/StepTargetRole";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -16,19 +21,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  flattenAttributionSnapshot,
+  readAttributionFromSession,
+} from "@/lib/careerosAttribution";
+import {
+  ONBOARDING_STEP_NAMES,
+  trackOnboardingCompleted,
+  trackOnboardingRoleSelected,
+  trackOnboardingStarted,
+  trackOnboardingStepCompleted,
+} from "@/lib/analytics";
 import { useOnboardingStore } from "@/store/onboardingStore";
 
-const TOTAL_STEPS = 5;
-
-const TARGET_ROLES = [
-  { value: "ai_product_manager", label: "AI Product Manager" },
-  { value: "ai_generalist", label: "AI Generalist" },
-  { value: "ai_engineer", label: "AI Engineer" },
-  { value: "ai_marketer", label: "AI Marketer" },
-  { value: "ai_operator", label: "AI Operator" },
-  { value: "ai_native_founder", label: "AI-native Founder" },
-  { value: "other", label: "Other" },
-] as const;
+const TOTAL_STEPS = 6;
 
 const YEARS_OPTIONS = [
   { value: "0-1", label: "0–1 years" },
@@ -94,21 +100,16 @@ const slideTransition = { duration: 0.22, ease: [0.22, 1, 0.36, 1] as const };
 export default function OnboardingPage() {
   const router = useRouter();
   const step = useOnboardingStore((s) => s.step);
-  const targetRole = useOnboardingStore((s) => s.targetRole);
   const currentRole = useOnboardingStore((s) => s.currentRole);
   const yearsOfExperience = useOnboardingStore((s) => s.yearsOfExperience);
   const aiFluency = useOnboardingStore((s) => s.aiFluency);
   const referralSource = useOnboardingStore((s) => s.referralSource);
   const startedAt = useOnboardingStore((s) => s.startedAt);
-  const resumeUploaded = useOnboardingStore((s) => s.resumeUploaded);
 
   const setStep = useOnboardingStore((s) => s.setStep);
   const setField = useOnboardingStore((s) => s.setField);
   const applyServerProgress = useOnboardingStore((s) => s.applyServerProgress);
   const ensureStepOneStarted = useOnboardingStore((s) => s.ensureStepOneStarted);
-  const mergeSessionAttributionIntoUtmParams = useOnboardingStore(
-    (s) => s.mergeSessionAttributionIntoUtmParams
-  );
   const clearSessionAttribution = useOnboardingStore(
     (s) => s.clearSessionAttribution
   );
@@ -117,7 +118,13 @@ export default function OnboardingPage() {
   const [hydrated, setHydrated] = useState(false);
   const [resumeReady, setResumeReady] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [roadmapCreated, setRoadmapCreated] = useState(false);
+  const [resumeForComplete, setResumeForComplete] =
+    useState<ResumeCompletePayload | null>(null);
   const resumeFetchStarted = useRef(false);
+  const onboardingStartedTracked = useRef(false);
+  const stepEnteredAtRef = useRef(Date.now());
+  const urlStepApplied = useRef(false);
 
   useEffect(() => {
     if (useOnboardingStore.persist.hasHydrated()) setHydrated(true);
@@ -130,6 +137,16 @@ export default function OnboardingPage() {
     if (!hydrated) return;
     ensureStepOneStarted();
   }, [hydrated, step, ensureStepOneStarted]);
+
+  useEffect(() => {
+    if (!hydrated || urlStepApplied.current || typeof window === "undefined") return;
+    const raw = new URLSearchParams(window.location.search).get("step");
+    if (raw === null) return;
+    const n = Number(raw);
+    if (!Number.isFinite(n) || n < 1 || n > TOTAL_STEPS) return;
+    setStep(n);
+    urlStepApplied.current = true;
+  }, [hydrated, setStep]);
 
   useEffect(() => {
     if (!hydrated || resumeFetchStarted.current) return;
@@ -163,13 +180,44 @@ export default function OnboardingPage() {
     })();
   }, [hydrated, applyServerProgress]);
 
+  useEffect(() => {
+    stepEnteredAtRef.current = Date.now();
+  }, [step]);
+
+  useEffect(() => {
+    if (!hydrated || !resumeReady || onboardingStartedTracked.current) return;
+    onboardingStartedTracked.current = true;
+    const s = useOnboardingStore.getState();
+    const sessionFlat = (() => {
+      const snap = readAttributionFromSession();
+      return snap ? flattenAttributionSnapshot(snap) : {};
+    })();
+    trackOnboardingStarted({
+      referralSource: s.referralSource,
+      utmSource: s.utmParams.utm_source ?? sessionFlat.utm_source ?? null,
+      utmMedium: s.utmParams.utm_medium ?? sessionFlat.utm_medium ?? null,
+    });
+  }, [hydrated, resumeReady]);
+
   const advance = useCallback(async () => {
+    const prev = step;
+    const timeOnStep = Math.max(0, Date.now() - stepEnteredAtRef.current);
     const next = Math.min(step + 1, TOTAL_STEPS);
     try {
       await patchProgress(next);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Save failed");
       return;
+    }
+    const stepName = ONBOARDING_STEP_NAMES[prev] ?? `step_${prev}`;
+    trackOnboardingStepCompleted({
+      step: prev,
+      stepName,
+      timeOnStep,
+    });
+    if (prev === 1) {
+      const tr = useOnboardingStore.getState().targetRole;
+      if (tr) trackOnboardingRoleSelected({ targetRole: tr });
     }
     setStep(next);
   }, [step, setStep]);
@@ -179,64 +227,64 @@ export default function OnboardingPage() {
     setStep(step - 1);
   }, [step, setStep]);
 
+  const handleIdentitySuccess = useCallback(
+    async (metrics?: { roadmapGeneratedMs: number }) => {
+      if (!roadmapCreated) {
+        const end = Date.now();
+        const start = startedAt ?? end;
+        const totalTimeSeconds = Math.max(0, Math.round((end - start) / 1000));
+        const s = useOnboardingStore.getState();
+        trackOnboardingCompleted({
+          targetRole: s.targetRole ?? "",
+          yearsOfExperience: s.yearsOfExperience ?? "",
+          aiFluency: s.aiFluency ?? "",
+          resumeUploaded: s.resumeUploaded,
+          totalTimeSeconds,
+          roadmapGeneratedMs: metrics?.roadmapGeneratedMs ?? 0,
+        });
+        clearSessionAttribution();
+        try {
+          await patchProgress(6);
+        } catch (e) {
+          toast.error(e instanceof Error ? e.message : "Could not save progress");
+        }
+        setRoadmapCreated(true);
+      }
+      setStep(6);
+    },
+    [roadmapCreated, startedAt, clearSessionAttribution, setStep]
+  );
+
   const handleFinalSubmit = useCallback(async () => {
-    if (!targetRole || !yearsOfExperience || !aiFluency) {
-      toast.error("Please complete all required fields.");
-      return;
-    }
-    mergeSessionAttributionIntoUtmParams();
-    const state = useOnboardingStore.getState();
     setSubmitting(true);
     try {
-      const res = await fetch("/api/onboarding/complete", {
-        method: "POST",
+      const data: Record<string, unknown> = {};
+      if (referralSource !== null && referralSource.trim() !== "") {
+        data.referralSource = referralSource.trim();
+      }
+      const res = await fetch("/api/onboarding/progress", {
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          targetRole,
-          currentRole: currentRole ?? undefined,
-          yearsOfExperience,
-          aiFluency,
-          referralSource: referralSource ?? undefined,
-          utmParams:
-            Object.keys(state.utmParams).length > 0 ? state.utmParams : undefined,
-        }),
+        body: JSON.stringify({ step: 6, data }),
       });
-      if (!res.ok) {
+      if (!res.ok && res.status !== 401) {
         const body = await res.json().catch(() => ({}));
         throw new Error(
           typeof body === "object" && body && "error" in body
             ? String((body as { error?: string }).error)
-            : "Submit failed"
+            : "Save failed"
         );
       }
-      const end = Date.now();
-      const start = startedAt ?? end;
-      const durationMs = Math.max(0, end - start);
-      track("onboarding_completed", {
-        duration_ms: durationMs,
-        steps: TOTAL_STEPS,
-      });
-      clearSessionAttribution();
       reset();
+      setResumeForComplete(null);
       toast.success("Welcome to CareerOS");
       router.push("/");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Submit failed");
+      toast.error(e instanceof Error ? e.message : "Save failed");
     } finally {
       setSubmitting(false);
     }
-  }, [
-    targetRole,
-    yearsOfExperience,
-    aiFluency,
-    currentRole,
-    referralSource,
-    startedAt,
-    mergeSessionAttributionIntoUtmParams,
-    clearSessionAttribution,
-    reset,
-    router,
-  ]);
+  }, [referralSource, reset, router, setResumeForComplete]);
 
   if (!hydrated || !resumeReady) {
     return (
@@ -247,14 +295,8 @@ export default function OnboardingPage() {
     );
   }
 
-  const canAdvanceStep1 = Boolean(targetRole);
   const canAdvanceStep2 = Boolean((currentRole ?? "").trim());
   const canAdvanceStep3 = Boolean(yearsOfExperience);
-  const canAdvanceStep4 = Boolean(aiFluency);
-  const canFinish =
-    Boolean(targetRole) &&
-    Boolean(yearsOfExperience) &&
-    Boolean(aiFluency);
 
   return (
     <div className="flex w-full max-w-lg flex-col items-stretch">
@@ -276,26 +318,7 @@ export default function OnboardingPage() {
                 We use this to tailor your roadmap.
               </p>
             </div>
-            <Select
-              value={targetRole ?? undefined}
-              onValueChange={(v) => setField("targetRole", v)}
-            >
-              <SelectTrigger className="w-full border-zinc-700 bg-zinc-900/80 text-zinc-100">
-                <SelectValue placeholder="Choose a role" />
-              </SelectTrigger>
-              <SelectContent>
-                {TARGET_ROLES.map((r) => (
-                  <SelectItem key={r.value} value={r.value}>
-                    {r.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <StepNav
-              canNext={canAdvanceStep1}
-              onNext={advance}
-              showBack={false}
-            />
+            <StepTargetRole onContinue={advance} />
           </motion.div>
         )}
 
@@ -385,7 +408,7 @@ export default function OnboardingPage() {
                 AI fluency
               </h1>
               <p className="mt-2 text-sm text-zinc-500">
-                Optional: upload a resume later from your dashboard.
+                Optional: upload your resume on this step so we can tailor your roadmap.
               </p>
             </div>
             <Select
@@ -403,13 +426,25 @@ export default function OnboardingPage() {
                 ))}
               </SelectContent>
             </Select>
-            <p className="text-xs text-zinc-600">
-              Resume on file: {resumeUploaded ? "Yes" : "No"}
-            </p>
-            <StepNav
-              canNext={canAdvanceStep4}
-              onNext={advance}
+            <StepResumeUpload
+              continueExtraDisabled={!aiFluency}
               onBack={goBack}
+              onContinue={advance}
+              onResumeDataChange={(data) => {
+                if (
+                  data.resumeUrl &&
+                  data.resumeParsed &&
+                  data.skillCount !== null
+                ) {
+                  setResumeForComplete({
+                    resumeUrl: data.resumeUrl,
+                    resumeParsed: data.resumeParsed,
+                    skillCount: data.skillCount,
+                  });
+                } else {
+                  setResumeForComplete(null);
+                }
+              }}
             />
           </motion.div>
         )}
@@ -417,6 +452,24 @@ export default function OnboardingPage() {
         {step === 5 && (
           <motion.div
             key="step-5"
+            className="flex flex-col gap-6"
+            initial={{ opacity: 0, x: 28 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -28 }}
+            transition={slideTransition}
+          >
+            <StepIdentityConfirm
+              onBack={goBack}
+              onSuccess={handleIdentitySuccess}
+              resumeForComplete={resumeForComplete}
+              roadmapAlreadyCreated={roadmapCreated}
+            />
+          </motion.div>
+        )}
+
+        {step === 6 && (
+          <motion.div
+            key="step-6"
             className="flex flex-col gap-6"
             initial={{ opacity: 0, x: 28 }}
             animate={{ opacity: 1, x: 0 }}
@@ -450,7 +503,7 @@ export default function OnboardingPage() {
                 type="button"
                 className="bg-[var(--onboarding-accent)] text-white hover:opacity-90"
                 style={{ ["--onboarding-accent" as string]: "oklch(0.55 0.22 264)" }}
-                disabled={!canFinish || submitting}
+                disabled={submitting}
                 onClick={() => void handleFinalSubmit()}
               >
                 {submitting ? "Submitting…" : "Finish"}

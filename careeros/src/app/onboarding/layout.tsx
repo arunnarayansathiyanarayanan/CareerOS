@@ -2,7 +2,7 @@
 
 import { useOnboardingStore } from "@/store/onboardingStore";
 
-const TOTAL_STEPS = 5;
+const TOTAL_STEPS = 6;
 const ACCENT = "oklch(0.55 0.22 264)";
 
 export default function OnboardingLayout({

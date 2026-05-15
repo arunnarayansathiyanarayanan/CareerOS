@@ -3,6 +3,7 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { after, NextResponse } from "next/server";
 import { z } from "zod";
 
+import { setOnboardingGateCookie } from "@/lib/onboardingMiddlewareCache";
 import { sendWelcomeEmail } from "@/services/notifications";
 
 import {
@@ -219,11 +220,13 @@ export async function POST(req: Request) {
       )
     );
 
-    return NextResponse.json({
+    const res = NextResponse.json({
       success: true,
       profileId,
       roadmapId,
     });
+    setOnboardingGateCookie(res, { complete: true, lastStep: 1 });
+    return res;
   } catch (e) {
     console.error("[onboarding/complete] unexpected:", e);
     return jsonError(500, "Unexpected server error", "INTERNAL_ERROR");
