@@ -8,6 +8,8 @@ import type {
   CompletionChecklist,
   ExternalLink,
 } from "@/db/schema/roadmap";
+import { legacyContentToGenerationResult } from "@/lib/legacyContentToGenerationResult";
+import { buildStarterRoadmapContentForRole } from "@/lib/legacyRoadmapJson";
 import type {
   GenerateRoadmapInput,
   RoadmapGenerationResult,
@@ -100,7 +102,7 @@ const PHASE_NAMES_BY_ROLE: Record<TargetRole, string[]> = {
 
 const externalLinkSchema = z.object({
   label: z.string().min(1),
-  url: z.string().url(),
+  url: z.string().min(1),
   type: z.enum(["youtube", "blog", "docs"]),
 });
 
@@ -243,23 +245,25 @@ function isTimeoutError(error: unknown): boolean {
   return false;
 }
 
-function parseModelContent(raw: string): GeneratedRoadmap {
+function buildFallbackGenerationResult(
+  input: GenerateRoadmapInput
+): RoadmapGenerationResult {
+  return legacyContentToGenerationResult(
+    buildStarterRoadmapContentForRole(input.targetRole)
+  );
+}
+
+function parseModelContent(raw: string): GeneratedRoadmap | null {
   let parsed: unknown;
   try {
     parsed = JSON.parse(raw.trim());
   } catch {
-    throw new RoadmapGenerationError(
-      "PARSE_FAIL",
-      "Failed to parse roadmap"
-    );
+    return null;
   }
 
   const result = generatedRoadmapSchema.safeParse(parsed);
   if (!result.success) {
-    throw new RoadmapGenerationError(
-      "PARSE_FAIL",
-      "Failed to parse roadmap"
-    );
+    return null;
   }
 
   return result.data;
@@ -293,15 +297,15 @@ export async function generateRoadmap(
     );
 
     const content = completion.choices[0]?.message?.content;
-    if (!content?.trim()) {
-      throw new RoadmapGenerationError(
-        "PARSE_FAIL",
-        "Failed to parse roadmap"
+    const parsed = content?.trim() ? parseModelContent(content) : null;
+    if (!parsed) {
+      console.warn(
+        "[generateRoadmap] model output invalid or empty; using starter template"
       );
+      return buildFallbackGenerationResult(input);
     }
 
-    const generated = parseModelContent(content);
-    return toGenerationResult(generated);
+    return toGenerationResult(parsed);
   } catch (error) {
     if (error instanceof RoadmapGenerationError) throw error;
     if (isTimeoutError(error)) {

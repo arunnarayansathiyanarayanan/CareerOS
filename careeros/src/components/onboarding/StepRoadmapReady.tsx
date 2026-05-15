@@ -5,7 +5,10 @@ import Link from "next/link";
 import { useMemo, useId } from "react";
 
 import { Button } from "@/components/ui/button";
-import type { RoadmapContent, RoadmapItem } from "@/services/roadmapGenerator";
+import type {
+  RoadmapContent,
+  RoadmapItem,
+} from "@/lib/legacyRoadmapJson";
 
 const APP_ORIGIN = (
   process.env.NEXT_PUBLIC_APP_URL ?? "https://careeros.com"

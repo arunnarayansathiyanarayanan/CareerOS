@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
+import { CurrentRoleAutocompleteField } from "@/components/onboarding/CurrentRoleAutocompleteField";
 import {
   StepIdentityConfirm,
   type ResumeCompletePayload,
@@ -344,12 +345,10 @@ export default function OnboardingPage() {
                 A short title is enough (e.g. &ldquo;Senior PM&rdquo;).
               </p>
             </div>
-            <Input
-              value={currentRole ?? ""}
-              onChange={(e) => setField("currentRole", e.target.value)}
+            <CurrentRoleAutocompleteField
               placeholder="Your current role"
-              maxLength={100}
-              className="border-zinc-700 bg-zinc-900/80 text-zinc-100 placeholder:text-zinc-600"
+              inputClassName="border-zinc-700 bg-zinc-900/80 text-zinc-100 placeholder:text-zinc-600"
+              showChevron={false}
             />
             <StepNav
               canNext={canAdvanceStep2}

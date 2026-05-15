@@ -1,9 +1,4 @@
 import { groupRoadmapItems } from "@/lib/groupRoadmapPhases";
-import {
-  groupedRoadmapFromLegacyContent,
-  parseLegacyRoadmapContent,
-  targetRoleForLegacySync,
-} from "@/lib/legacyRoadmapContent";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import type {
   RoadmapItemStatus,
@@ -23,6 +18,10 @@ function mapRoadmapRow(row: Record<string, unknown>): Roadmap {
     generatedAt: new Date(String(row.generated_at)),
     lastRegenAt:
       row.last_regen_at != null ? new Date(String(row.last_regen_at)) : null,
+    updatedAt:
+      row.updated_at != null
+        ? new Date(String(row.updated_at))
+        : new Date(String(row.generated_at)),
     status: (row.status as RoadmapStatus) ?? "active",
   };
 }
@@ -73,8 +72,8 @@ async function loadNormalizedGrouped(
     .from("roadmaps")
     .select("*")
     .eq("user_id", userId)
-    .eq("status", "active")
-    .order("generated_at", { ascending: false })
+    .in("status", ["active", "stale"])
+    .order("updated_at", { ascending: false })
     .limit(1)
     .maybeSingle();
 
@@ -95,43 +94,6 @@ async function loadNormalizedGrouped(
   );
 }
 
-async function loadLegacyGrouped(
-  userId: string
-): Promise<GroupedRoadmap | null> {
-  const supabase = getSupabaseAdmin();
-
-  const { data: legacy, error: legacyError } = await supabase
-    .from("roadmaps")
-    .select("id, content")
-    .eq("user_id", userId)
-    .eq("is_current", true)
-    .maybeSingle();
-
-  if (legacyError || !legacy?.content) return null;
-
-  const content = parseLegacyRoadmapContent(legacy.content);
-  if (!content) return null;
-
-  const { data: profile } = await supabase
-    .from("onboarding_profiles")
-    .select("target_role")
-    .eq("user_id", userId)
-    .order("updated_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  const targetRole = targetRoleForLegacySync(
-    profile?.target_role as string | undefined
-  );
-
-  return groupedRoadmapFromLegacyContent(
-    userId,
-    content,
-    targetRole,
-    typeof legacy.id === "string" ? legacy.id : undefined
-  );
-}
-
 /** Loads the active roadmap via Supabase (no `DATABASE_URL` required). */
 export async function getGroupedRoadmapViaSupabase(
   clerkId: string
@@ -148,8 +110,5 @@ export async function getGroupedRoadmapViaSupabase(
     return null;
   }
 
-  const normalized = await loadNormalizedGrouped(userRow.id);
-  if (normalized) return normalized;
-
-  return loadLegacyGrouped(userRow.id);
+  return loadNormalizedGrouped(userRow.id);
 }

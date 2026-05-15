@@ -9,7 +9,7 @@ import {
   targetRoleForLegacySync,
 } from "@/lib/legacyRoadmapContent";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
-import type { RoadmapContent } from "@/services/roadmapGenerator";
+import type { RoadmapContent } from "@/lib/legacyRoadmapJson";
 import type { TargetRole } from "@/types/roadmap";
 
 function defaultChecklist() {

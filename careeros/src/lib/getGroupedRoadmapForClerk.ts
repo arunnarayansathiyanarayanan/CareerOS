@@ -1,4 +1,4 @@
-import { and, asc, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq, inArray } from "drizzle-orm";
 
 import { getDb } from "@/db/client";
 import { roadmapItems, roadmaps } from "@/db/schema/roadmap";
@@ -20,8 +20,13 @@ async function loadActiveGroupedRoadmap(
   const [roadmap] = await db
     .select()
     .from(roadmaps)
-    .where(and(eq(roadmaps.userId, userId), eq(roadmaps.status, "active")))
-    .orderBy(desc(roadmaps.generatedAt))
+    .where(
+      and(
+        eq(roadmaps.userId, userId),
+        inArray(roadmaps.status, ["active", "stale"])
+      )
+    )
+    .orderBy(desc(roadmaps.updatedAt))
     .limit(1);
 
   if (!roadmap) return null;

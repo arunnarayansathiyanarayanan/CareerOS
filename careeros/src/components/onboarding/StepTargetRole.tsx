@@ -3,6 +3,7 @@
 import type { LucideIcon } from "lucide-react";
 import {
   Check,
+  Compass,
   Cpu,
   Megaphone,
   Rocket,
@@ -56,6 +57,12 @@ const ROLES: readonly {
     label: "AI-Native Founder",
     description: "Build a company where AI is the product and the moat",
     Icon: Rocket,
+  },
+  {
+    value: "other",
+    label: "Other",
+    description: "I'll follow the AI Generalist path while I figure it out.",
+    Icon: Compass,
   },
 ];
 

@@ -58,9 +58,10 @@ async function fetchProfileForGeneration(
 
 async function markRoadmapStale(db: DrizzleDB, roadmapId: string): Promise<void> {
   try {
+    const now = new Date();
     await db
       .update(roadmaps)
-      .set({ status: "stale" })
+      .set({ status: "stale", updatedAt: now })
       .where(eq(roadmaps.id, roadmapId));
   } catch (markError) {
     console.error("[regenerateRoadmap] failed to mark roadmap stale:", markError);
@@ -234,6 +235,7 @@ export async function regenerateRoadmap(
           lastRegenAt: now,
           aiNativeReadyScore,
           status: "active",
+          updatedAt: now,
         })
         .where(eq(roadmaps.id, roadmap.id));
     });

@@ -21,11 +21,15 @@ export function DashboardEmptyState({ targetRole }: { targetRole: TargetRole }) 
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
-        const message =
+        const err =
           typeof body === "object" && body && "error" in body
             ? String((body as { error?: string }).error)
             : "Could not generate roadmap";
-        throw new Error(message);
+        const code =
+          typeof body === "object" && body && "code" in body
+            ? String((body as { code?: string }).code)
+            : "";
+        throw new Error(code ? `${err} (${code})` : err);
       }
       router.refresh();
     } catch (e) {

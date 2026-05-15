@@ -72,6 +72,10 @@ export const roadmaps = pgTable(
       .defaultNow()
       .notNull(),
     lastRegenAt: timestamp("last_regen_at", { withTimezone: true }),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull()
+      .$onUpdate(() => new Date()),
     status: roadmapStatusEnum("status").notNull().default("active"),
   },
   (table) => ({

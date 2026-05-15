@@ -3,7 +3,7 @@ import { z } from "zod";
 
 import { groupRoadmapItems } from "@/lib/groupRoadmapPhases";
 import { targetRoleFromOnboardingSelection } from "@/lib/mapOnboardingTargetRole";
-import type { RoadmapContent } from "@/services/roadmapGenerator";
+import type { RoadmapContent } from "@/lib/legacyRoadmapJson";
 import type { GroupedRoadmap, Roadmap, RoadmapItem, TargetRole } from "@/types/roadmap";
 
 const legacyContentSchema = z.object({
@@ -143,6 +143,7 @@ export function groupedRoadmapFromLegacyContent(
     aiNativeReadyScore: content.meta.aiNativeReadyScore,
     generatedAt: new Date(),
     lastRegenAt: null,
+    updatedAt: new Date(),
     status: "active",
   };
 

@@ -48,48 +48,7 @@ jest.mock("sonner", () => ({
   },
 }));
 
-function makeRoadmapSupabaseMock() {
-  const chain = {
-    eq: () => chain,
-    order: () => chain,
-    limit: () => chain,
-    maybeSingle: async () => ({ data: null, error: null }),
-    single: async () => ({
-      data: { id: "roadmap-row-1" },
-      error: null,
-    }),
-  };
-
-  return {
-    from: (table: string) => ({
-      select: () => chain,
-      update: () => ({
-        eq: () => ({
-          eq: async () => ({ error: null }),
-        }),
-      }),
-      insert: () => {
-        const result = { error: null as null };
-        return Object.assign(Promise.resolve(result), {
-          select: () => ({
-            single: async () => ({
-              data: { id: "roadmap-row-1" },
-              error: null,
-            }),
-          }),
-        });
-      },
-      delete: () => ({
-        eq: async () => ({ error: null }),
-      }),
-    }),
-  };
-}
-
-async function importGenerateInitialRoadmap(
-  openaiChatCompletionsCreate: jest.Mock,
-  supabaseFactory: () => ReturnType<typeof makeRoadmapSupabaseMock>
-) {
+async function importGenerateRoadmap(openaiChatCompletionsCreate: jest.Mock) {
   jest.resetModules();
   const nodeUtil = require("node:util") as typeof import("node:util");
   globalThis.structuredClone =
@@ -116,11 +75,8 @@ async function importGenerateInitialRoadmap(
       APIConnectionTimeoutError,
     };
   });
-  jest.doMock("@supabase/supabase-js", () => ({
-    createClient: jest.fn(() => supabaseFactory()),
-  }));
-  const mod = await import("@/services/roadmapGenerator");
-  return mod.generateInitialRoadmap;
+  const mod = await import("@/services/generateRoadmap");
+  return mod.generateRoadmap;
 }
 
 beforeEach(async () => {
@@ -421,50 +377,43 @@ describe("E1 onboarding", () => {
   });
 });
 
-describe("generateInitialRoadmap (fallback + timeout)", () => {
+describe("generateRoadmap (invalid model output + timeout)", () => {
   const openaiChatCompletionsCreate = jest.fn() as jest.Mock;
 
   beforeEach(() => {
     openaiChatCompletionsCreate.mockReset();
-    process.env.NEXT_PUBLIC_SUPABASE_URL = "http://127.0.0.1:54321";
-    process.env.SUPABASE_SERVICE_ROLE_KEY = "srk";
     process.env.OPENAI_API_KEY = "sk-test";
   });
 
-  it("uses starter roadmap content when OpenAI returns invalid JSON (not empty)", async () => {
+  it("falls back to starter template when OpenAI returns invalid JSON", async () => {
     openaiChatCompletionsCreate.mockResolvedValue({
       choices: [{ message: { content: "NOT JSON {{{" } }],
     });
-    const generateInitialRoadmap = await importGenerateInitialRoadmap(
-      openaiChatCompletionsCreate,
-      makeRoadmapSupabaseMock
-    );
-    const roadmap = await generateInitialRoadmap({
+    const generateRoadmap = await importGenerateRoadmap(openaiChatCompletionsCreate);
+    const result = await generateRoadmap({
       userId: "user-1",
-      onboardingProfileId: "prof-1",
-      targetRole: "ai_engineer",
+      targetRole: "AI_ENGINEER",
+      currentRole: "Dev",
+      yearsExperience: "1-3",
       aiFluency: "not_started",
     });
-    expect(roadmap.content.phases.length).toBeGreaterThan(0);
-    expect(roadmap.content.phases[0].items[0].id).toBe("starter-concept-llm-apis");
+    expect(result.phases.length).toBeGreaterThan(0);
+    expect(result.phases[0].items[0].title).toMatch(/LLM APIs/i);
   });
 
-  it("uses fallback when the OpenAI call aborts (timeout path)", async () => {
+  it("throws TIMEOUT when the OpenAI call aborts", async () => {
     const err = new Error("aborted");
     err.name = "AbortError";
     openaiChatCompletionsCreate.mockRejectedValue(err);
-    const generateInitialRoadmap = await importGenerateInitialRoadmap(
-      openaiChatCompletionsCreate,
-      makeRoadmapSupabaseMock
-    );
-    const roadmap = await generateInitialRoadmap({
-      userId: "user-2",
-      onboardingProfileId: "prof-2",
-      targetRole: "ai_product_manager",
-      aiFluency: "played_with_chatgpt",
-    });
-    expect(roadmap.content.meta.targetRole).toMatch(/product/i);
-    expect(roadmap.content.phases[0].items.length).toBeGreaterThan(0);
-    await new Promise((r) => setTimeout(r, 0));
+    const generateRoadmap = await importGenerateRoadmap(openaiChatCompletionsCreate);
+    await expect(
+      generateRoadmap({
+        userId: "user-2",
+        targetRole: "AI_PM",
+        currentRole: "PM",
+        yearsExperience: "3-7",
+        aiFluency: "played_with_chatgpt",
+      })
+    ).rejects.toThrow("Generation timed out");
   });
 });

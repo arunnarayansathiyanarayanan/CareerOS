@@ -15,6 +15,12 @@ export function RoadmapTimeline({ groupedRoadmap }: RoadmapTimelineProps) {
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-8 sm:px-6">
+      {roadmap.status === "stale" ? (
+        <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-100/90">
+          Your roadmap is being updated. Showing last saved version.
+        </p>
+      ) : null}
+
       <header className="space-y-1">
         <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-500">
           Your roadmap

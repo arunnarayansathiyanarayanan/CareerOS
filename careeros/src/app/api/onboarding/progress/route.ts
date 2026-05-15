@@ -3,17 +3,13 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-export const runtime = "nodejs";
+import {
+  isOnboardingTargetRoleDbValue,
+  ONBOARDING_TARGET_ROLE_ASSIGNABLE,
+  type OnboardingTargetRoleDbValue,
+} from "@/lib/onboardingTargetRoleSpec";
 
-const TARGET_ROLES = [
-  "ai_product_manager",
-  "ai_generalist",
-  "ai_engineer",
-  "ai_marketer",
-  "ai_operator",
-  "ai_native_founder",
-  "other",
-] as const;
+export const runtime = "nodejs";
 
 const YEARS_OF_EXPERIENCE = ["0-1", "1-3", "3-7", "7-12", "12+"] as const;
 
@@ -25,7 +21,7 @@ const AI_FLUENCY = [
   "working_in_ai",
 ] as const;
 
-export type TargetRole = (typeof TARGET_ROLES)[number];
+export type TargetRole = OnboardingTargetRoleDbValue;
 export type YearsOfExperience = (typeof YEARS_OF_EXPERIENCE)[number];
 export type AiFluency = (typeof AI_FLUENCY)[number];
 
@@ -46,9 +42,15 @@ export interface OnboardingProfile {
 function jsonError(
   status: number,
   error: string,
-  code: string
-): NextResponse<{ error: string; code: string }> {
-  return NextResponse.json({ error, code }, { status });
+  code: string,
+  details?: unknown
+): NextResponse<{ error: string; code: string; details?: unknown }> {
+  const body: { error: string; code: string; details?: unknown } = {
+    error,
+    code,
+  };
+  if (details !== undefined) body.details = details;
+  return NextResponse.json(body, { status });
 }
 
 function getSupabaseAdmin(): SupabaseClient {
@@ -78,10 +80,6 @@ type OnboardingRow = {
   referral_utm: unknown;
 };
 
-function isTargetRole(v: string): v is TargetRole {
-  return (TARGET_ROLES as readonly string[]).includes(v);
-}
-
 function isYearsOfExperience(v: string): v is YearsOfExperience {
   return (YEARS_OF_EXPERIENCE as readonly string[]).includes(v);
 }
@@ -104,7 +102,7 @@ function rowToProfile(row: OnboardingRow): OnboardingProfile {
   const tr = row.target_role;
   return {
     step: row.onboarding_step ?? 1,
-    targetRole: isTargetRole(tr) ? tr : null,
+    targetRole: isOnboardingTargetRoleDbValue(tr) ? tr : null,
     currentRole: row.current_role,
     yearsOfExperience:
       row.years_of_experience && isYearsOfExperience(row.years_of_experience)
@@ -123,7 +121,7 @@ function rowToProfile(row: OnboardingRow): OnboardingProfile {
 
 const partialProfileSchema = z
   .object({
-    targetRole: z.enum(TARGET_ROLES).nullable().optional(),
+    targetRole: z.enum(ONBOARDING_TARGET_ROLE_ASSIGNABLE).nullable().optional(),
     currentRole: z.string().nullable().optional(),
     yearsOfExperience: z.enum(YEARS_OF_EXPERIENCE).nullable().optional(),
     aiFluency: z.enum(AI_FLUENCY).nullable().optional(),
@@ -257,7 +255,12 @@ export async function PATCH(req: Request) {
 
     const parsed = patchBodySchema.safeParse(body);
     if (!parsed.success) {
-      return jsonError(400, "Invalid request body", "VALIDATION_ERROR");
+      return jsonError(
+        422,
+        `Invalid onboarding progress. target_role (in data.targetRole) must be one of: ${ONBOARDING_TARGET_ROLE_ASSIGNABLE.join(", ")} when provided; it is required when creating a new profile row.`,
+        "VALIDATION_ERROR",
+        parsed.error.flatten()
+      );
     }
 
     const { step, data } = parsed.data;
@@ -303,10 +306,14 @@ export async function PATCH(req: Request) {
         return jsonError(502, "Failed to save progress", "DATABASE_ERROR");
       }
     } else {
-      const insertTarget =
-        rowPatch.target_role !== undefined
-          ? rowPatch.target_role
-          : "other";
+      const insertTarget = data.targetRole;
+      if (insertTarget === undefined || insertTarget === null) {
+        return jsonError(
+          422,
+          `target_role is required when creating a new onboarding profile. Choose one of: ${ONBOARDING_TARGET_ROLE_ASSIGNABLE.join(", ")}.`,
+          "MISSING_TARGET_ROLE"
+        );
+      }
 
       const { error } = await supabase.from("onboarding_profiles").insert({
         user_id: appUserId,

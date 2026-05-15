@@ -3,27 +3,16 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { after, NextResponse } from "next/server";
 import { z } from "zod";
 
-import { roadmapModelRoleFromSelection } from "@/lib/e1OnboardingRouting";
 import { setOnboardingGateCookie } from "@/lib/onboardingMiddlewareCache";
+import { targetRoleFromOnboardingSelection } from "@/lib/mapOnboardingTargetRole";
+import { ONBOARDING_TARGET_ROLE_ASSIGNABLE } from "@/lib/onboardingTargetRoleSpec";
+import { generateAndPersistRoadmap } from "@/services/generateAndPersistRoadmap";
 import { sendWelcomeEmail } from "@/services/notifications";
-
-import {
-  generateInitialRoadmap,
-  type ResumeParsed,
-} from "@/services/roadmapGenerator";
 
 export const runtime = "nodejs";
 
 const completeBodySchema = z.object({
-  targetRole: z.enum([
-    "ai_product_manager",
-    "ai_generalist",
-    "ai_engineer",
-    "ai_marketer",
-    "ai_operator",
-    "ai_native_founder",
-    "other",
-  ]),
+  targetRole: z.enum(ONBOARDING_TARGET_ROLE_ASSIGNABLE),
   currentRole: z.string().max(100).optional(),
   yearsOfExperience: z.enum(["0-1", "1-3", "3-7", "7-12", "12+"]),
   aiFluency: z.enum([
@@ -64,10 +53,14 @@ function getSupabaseAdmin(): SupabaseClient {
   return createClient(url, key);
 }
 
-function asResumeParsed(raw: unknown): ResumeParsed | undefined {
-  if (raw === undefined || raw === null) return undefined;
-  if (typeof raw !== "object" || Array.isArray(raw)) return undefined;
-  return raw as ResumeParsed;
+function resumeSkillsFromParsed(resumeParsed: unknown): string[] | undefined {
+  if (resumeParsed === null || resumeParsed === undefined) return undefined;
+  if (typeof resumeParsed !== "object" || Array.isArray(resumeParsed)) {
+    return undefined;
+  }
+  const skills = (resumeParsed as { skills?: unknown }).skills;
+  if (!Array.isArray(skills)) return undefined;
+  return skills.filter((s): s is string => typeof s === "string" && s.length > 0);
 }
 
 export async function POST(req: Request) {
@@ -98,12 +91,16 @@ export async function POST(req: Request) {
 
     const parsed = completeBodySchema.safeParse(bodyJson);
     if (!parsed.success) {
-      return jsonError(400, "Validation failed", "VALIDATION_ERROR", parsed.error.flatten());
+      return jsonError(
+        422,
+        `target_role is missing or invalid. It must be one of: ${ONBOARDING_TARGET_ROLE_ASSIGNABLE.join(", ")}.`,
+        "VALIDATION_ERROR",
+        parsed.error.flatten()
+      );
     }
     const body = parsed.data;
 
     const supabase = getSupabaseAdmin();
-    const routingRole = roadmapModelRoleFromSelection(body.targetRole);
 
     const { data: userRow, error: userUpsertError } = await supabase
       .from("users")
@@ -183,16 +180,17 @@ export async function POST(req: Request) {
 
     let roadmapId: string;
     try {
-      const roadmap = await generateInitialRoadmap({
+      const targetRole = targetRoleFromOnboardingSelection(body.targetRole);
+      const skills = resumeSkillsFromParsed(body.resumeParsed);
+      const { roadmapId: id } = await generateAndPersistRoadmap({
         userId: internalUserId,
-        onboardingProfileId: profileId,
-        targetRole: routingRole,
-        currentRole: body.currentRole ?? null,
-        yearsOfExperience: body.yearsOfExperience,
+        targetRole,
+        currentRole: body.currentRole?.trim() || "Not specified",
+        yearsExperience: body.yearsOfExperience,
         aiFluency: body.aiFluency,
-        resumeParsed: asResumeParsed(body.resumeParsed),
+        ...(skills?.length ? { existingSkills: skills } : {}),
       });
-      roadmapId = roadmap.id;
+      roadmapId = id;
     } catch (e) {
       console.error("[onboarding/complete] roadmap generation:", e);
       return jsonError(502, "Failed to save roadmap", "ROADMAP_GENERATION_FAILED");

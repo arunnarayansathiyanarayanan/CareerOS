@@ -1,4 +1,8 @@
 import { calculateAiNativeReadyScore } from "@/lib/calculateAiNativeReadyScore";
+import {
+  deleteOrphanActiveRoadmap,
+  getActiveRoadmapWithItems,
+} from "@/lib/roadmapPersistenceHelpers";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { generateRoadmap } from "@/services/generateRoadmap";
 import { persistGenerationResultSupabase } from "@/services/persistNormalizedRoadmapSupabase";
@@ -27,20 +31,21 @@ export async function generateAndPersistRoadmap(
   input: GenerateRoadmapInput
 ): Promise<GenerateAndPersistResult> {
   const supabase = getSupabaseAdmin();
+  await deleteOrphanActiveRoadmap(supabase, input.userId);
 
-  const { data: existing } = await supabase
-    .from("roadmaps")
-    .select("id")
-    .eq("user_id", input.userId)
-    .eq("status", "active")
-    .maybeSingle();
+  const existing = await getActiveRoadmapWithItems(supabase, input.userId);
+  if (existing) {
+    const { data: roadmap } = await supabase
+      .from("roadmaps")
+      .select("ai_native_ready_score")
+      .eq("id", existing.roadmapId)
+      .single();
 
-  if (existing?.id) {
     return {
-      roadmapId: existing.id as string,
-      aiNativeReadyScore: 0,
+      roadmapId: existing.roadmapId,
+      aiNativeReadyScore: Number(roadmap?.ai_native_ready_score ?? 0),
       phaseCount: 0,
-      totalItems: 0,
+      totalItems: existing.itemCount,
     };
   }
 
