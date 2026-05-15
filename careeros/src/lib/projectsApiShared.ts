@@ -35,6 +35,17 @@ export function toEmbedJson(embed: ProjectEmbed) {
   };
 }
 
+/** Embed row has proof the reviewer can cite (link or uploaded file). */
+export function projectEmbedHasEvidence(embed: {
+  url: string | null;
+  storageKey: string | null;
+}): boolean {
+  const u = embed.url?.trim();
+  if (u) return true;
+  const sk = embed.storageKey?.trim();
+  return Boolean(sk);
+}
+
 export function sanitizeAiReviewerDataForClient(
   data: AiReviewerData | null
 ): Omit<AiReviewerData, "reasoning"> | null {

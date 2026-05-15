@@ -404,6 +404,7 @@ export function ProjectBuilder() {
   React.useEffect(() => {
     embedRowsRef.current = embedRows;
   }, [embedRows]);
+  const hasSyncedProofEmbed = embedRows.some((r) => r.serverId !== null);
   const reorderTimer = React.useRef<ReturnType<typeof setTimeout> | null>(
     null
   );
@@ -1374,19 +1375,26 @@ export function ProjectBuilder() {
             )}
             {sectionTitle("AI reviewer")}
           </div>
-          <span className="text-xs text-zinc-500">Optional</span>
+          <span className="text-xs text-zinc-500">Needs proof embeds</span>
         </button>
 
         {aiOpen ? (
           <div className="mt-5 space-y-4 border-t border-zinc-800 pt-5">
             <p className="text-sm text-zinc-400">
-              Runs against your saved draft, embeds included (max 3 runs per project
-              unless you change the stack).
+              Runs against your saved draft and your proof-of-work embeds (repo, demo,
+              Loom, uploads). Add and save at least one embed above first—max 3 runs per
+              project unless you change the stack.
             </p>
+            {!hasSyncedProofEmbed ? (
+              <p className="text-sm text-amber-400/90">
+                Save a link (blur the URL field) or upload a file on an embed row to
+                unlock the reviewer.
+              </p>
+            ) : null}
             <Button
               type="button"
               className="bg-[#6366F1] text-white hover:bg-[#5558E3]"
-              disabled={aiLoading || !projectId}
+              disabled={aiLoading || !projectId || !hasSyncedProofEmbed}
               onClick={() => void runAiReview()}
             >
               {aiLoading ? (

@@ -10,7 +10,7 @@ import {
   reviewProject,
   saveProjectAiReviewResult,
 } from "@/lib/ai/project-reviewer";
-import { toEmbedJson } from "@/lib/projectsApiShared";
+import { toEmbedJson, projectEmbedHasEvidence } from "@/lib/projectsApiShared";
 
 export const runtime = "nodejs";
 
@@ -79,6 +79,20 @@ export async function POST(_req: Request, context: RouteContext) {
       .where(eq(projectEmbeds.projectId, id))
       .orderBy(asc(projectEmbeds.displayOrder), asc(projectEmbeds.createdAt));
 
+    const evidenceEmbeds = embedRows.filter((e) =>
+      projectEmbedHasEvidence({
+        url: e.url,
+        storageKey: e.storageKey,
+      })
+    );
+    if (evidenceEmbeds.length === 0) {
+      return jsonErr(422, {
+        error:
+          "Add at least one embed—a repo link, demo URL, Loom, screenshot, or PDF—before running AI review. Feedback is grounded in proof of work, not the text fields alone.",
+        code: "EMBEDS_REQUIRED",
+      });
+    }
+
     const input = {
       title: row.title,
       one_liner: row.oneLiner,
@@ -86,7 +100,7 @@ export async function POST(_req: Request, context: RouteContext) {
       ai_stack: row.aiStack,
       my_role: row.myRole,
       outcome: row.outcome,
-      embeds: embedRows.map((e) => {
+      embeds: evidenceEmbeds.map((e) => {
         const j = toEmbedJson(e);
         return { type: j.type, url: j.url ?? undefined };
       }),

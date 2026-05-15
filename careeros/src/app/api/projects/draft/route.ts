@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getClerkAppSession } from "@/lib/auth";
+import { ensureAppUserPublicUsername } from "@/lib/ensureAppUserPublicUsername";
 import { getDb } from "@/db";
 import { projects } from "@/db/schema/projects";
 import { toProjectJson } from "@/lib/projectsApiShared";
@@ -27,16 +28,13 @@ export async function POST() {
         code: "USER_NOT_PROVISIONED",
       });
     }
-    const { appUser } = session;
+    const { appUser, clerkUserId } = session;
 
-    if (!appUser.username?.trim()) {
-      return jsonErr(422, {
-        error: "A username is required before creating a project draft",
-        code: "USERNAME_REQUIRED",
-      });
-    }
-
-    const username = appUser.username.trim();
+    const username = await ensureAppUserPublicUsername({
+      appUserId: appUser.id,
+      clerkUserId,
+      username: appUser.username,
+    });
     const slug = `draft-${crypto.randomUUID().replace(/-/g, "")}`;
 
     const db = getDb();

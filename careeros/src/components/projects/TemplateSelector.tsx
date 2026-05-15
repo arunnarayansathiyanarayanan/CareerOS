@@ -98,8 +98,8 @@ export function TemplateSelector({
           role !== undefined
             ? `?role=${encodeURIComponent(role)}`
             : "";
-        const res = await fetch(`/api/projects/templates${qs}`);
-        const data = (await res.json()) as {
+        let res = await fetch(`/api/projects/templates${qs}`);
+        let data = (await res.json()) as {
           templates?: TemplateCardPayload[];
           error?: string;
         };
@@ -108,8 +108,19 @@ export function TemplateSelector({
             typeof data.error === "string" ? data.error : "Could not load templates"
           );
         }
+        let list = data.templates ?? [];
+        if (list.length === 0 && role !== undefined) {
+          res = await fetch("/api/projects/templates");
+          data = (await res.json()) as {
+            templates?: TemplateCardPayload[];
+            error?: string;
+          };
+          if (res.ok) {
+            list = data.templates ?? [];
+          }
+        }
         if (!cancelled) {
-          setTemplates(data.templates ?? []);
+          setTemplates(list);
         }
       } catch (e) {
         if (!cancelled) {

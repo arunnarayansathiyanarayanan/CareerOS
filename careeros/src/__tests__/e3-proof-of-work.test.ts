@@ -71,7 +71,7 @@ import {
 import { DELETE as deleteEmbed } from "@/app/api/projects/[id]/embeds/[embedId]/route";
 import { POST as postRecruiterShare } from "@/app/api/projects/[id]/recruiter-share/route";
 import { POST as postReview } from "@/app/api/projects/[id]/review/route";
-import { GET as getProjectByUserSlug } from "@/app/api/projects/[username]/[slug]/route";
+import { GET as getProjectByUserSlug } from "@/app/api/projects/by-slug/[username]/[slug]/route";
 import { GET as getRecruiterView } from "@/app/api/r/[token]/route";
 import { getDb } from "@/db";
 import {
@@ -595,7 +595,7 @@ describe("1. Project CRUD", () => {
   wrapIt("crud", "1d GET public project (no auth)", async () => {
     authState.user = null;
     const res = await request(testServer).get(
-      `/api/projects/${encodeURIComponent("test-user-e3")}/${encodeURIComponent(PROJECT_SLUG)}`
+      `/api/projects/by-slug/${encodeURIComponent("test-user-e3")}/${encodeURIComponent(PROJECT_SLUG)}`
     );
     expect(res.status).toBe(200);
     expect(res.body.project.title).toBe("RAG Pipeline with LangChain");
@@ -654,7 +654,7 @@ describe("1. Project CRUD", () => {
 
     authState.user = null;
     const g = await request(testServer).get(
-      `/api/projects/${encodeURIComponent("test-user-e3")}/${encodeURIComponent(PROJECT_SLUG)}`
+      `/api/projects/by-slug/${encodeURIComponent("test-user-e3")}/${encodeURIComponent(PROJECT_SLUG)}`
     );
     expect(g.status).toBe(404);
   });
@@ -882,46 +882,23 @@ describe("4. AI reviewer", () => {
     expect(row?.aiReviewerData?.portfolio_ready).toBe(b.portfolio_ready);
   });
 
-  wrapIt("review", "4b short problem and no embeds => portfolio_ready false", async () => {
-    reviewMock.fn.mockImplementationOnce(async () => ({
-      score: 10,
-      strengths: ["a", "b", "c"],
-      improvements: ["x", "y", "z"],
-      portfolio_ready: false,
-      reasoning: "force false scenario",
-    }));
+  wrapIt("review", "4b rejects review when no proof embeds", async () => {
     const res = await request(testServer)
       .post("/api/projects")
-      .send(validCreateBody({ title: `Low signal ${Date.now()}`, privacy_mode: "public" }));
+      .send(validCreateBody({ title: `No embeds ${Date.now()}`, privacy_mode: "public" }));
     expect(res.status).toBe(201);
     const pid = (res.body as { project: { id: string } }).project.id;
     rememberProjectId(pid);
     const db = getDb();
     await db
       .update(projects)
-      .set({ problemSolved: "x".repeat(80) })
+      .set({ problemSolved: "x".repeat(120) })
       .where(eq(projects.id, pid));
     await db.delete(projectEmbeds).where(eq(projectEmbeds.projectId, pid));
 
     const rev = await request(testServer).post(`/api/projects/${pid}/review`);
-    expect(rev.status).toBe(200);
-    expect((rev.body as { portfolio_ready: boolean }).portfolio_ready).toBe(false);
-    reviewMock.fn.mockImplementation(
-      async (input: { problem_solved: string; embeds: unknown[] }) => {
-        const score = 8;
-        const portfolio_ready =
-          score >= 5 &&
-          input.problem_solved.trim().length >= 100 &&
-          input.embeds.length >= 1;
-        return {
-          score,
-          strengths: ["s1 specific strength one", "s2 specific strength two", "s3 specific strength three"],
-          improvements: ["i1 actionable one", "i2 actionable two", "i3 actionable three"],
-          portfolio_ready,
-          reasoning: "Deterministic reviewer stub for E3 tests.",
-        };
-      }
-    );
+    expect(rev.status).toBe(422);
+    expect((rev.body as { code?: string }).code).toBe("EMBEDS_REQUIRED");
   });
 
   wrapIt("review", "4c fourth review returns 429", async () => {
@@ -939,6 +916,10 @@ describe("4. AI reviewer", () => {
       .send(validCreateBody({ title: `503 review project ${Date.now()}` }));
     const pid = (res.body as { project: { id: string } }).project.id;
     rememberProjectId(pid);
+    await request(testServer)
+      .post(`/api/projects/${pid}/embeds`)
+      .set("Content-Type", "application/json")
+      .send({ type: "github", url: "https://example.com/review-openai-check" });
     const prev = process.env.OPENAI_API_KEY;
     try {
       delete process.env.OPENAI_API_KEY;
@@ -1053,7 +1034,7 @@ describe("7. Privacy modes (API)", () => {
 
     authState.user = null;
     const anon = await request(testServer).get(
-      `/api/projects/${encodeURIComponent("test-user-e3")}/${encodeURIComponent(slug)}`
+      `/api/projects/by-slug/${encodeURIComponent("test-user-e3")}/${encodeURIComponent(slug)}`
     );
     expect(anon.status).toBe(401);
 
@@ -1066,7 +1047,7 @@ describe("7. Privacy modes (API)", () => {
       updatedAt: new Date(),
     };
     const owner = await request(testServer).get(
-      `/api/projects/${encodeURIComponent("test-user-e3")}/${encodeURIComponent(slug)}`
+      `/api/projects/by-slug/${encodeURIComponent("test-user-e3")}/${encodeURIComponent(slug)}`
     );
     expect(owner.status).toBe(200);
   });
@@ -1084,7 +1065,7 @@ describe("7. Privacy modes (API)", () => {
     rememberProjectId((res.body as { project: { id: string } }).project.id);
     authState.user = null;
     const g = await request(testServer).get(
-      `/api/projects/${encodeURIComponent("test-user-e3")}/${encodeURIComponent(slug)}`
+      `/api/projects/by-slug/${encodeURIComponent("test-user-e3")}/${encodeURIComponent(slug)}`
     );
     expect(g.status).toBe(200);
   });
@@ -1104,7 +1085,7 @@ describe("7. Privacy modes (API)", () => {
 
     authState.user = null;
     const blocked = await request(testServer).get(
-      `/api/projects/${encodeURIComponent("test-user-e3")}/${encodeURIComponent(slug)}`
+      `/api/projects/by-slug/${encodeURIComponent("test-user-e3")}/${encodeURIComponent(slug)}`
     );
     expect(blocked.status).toBe(401);
 

@@ -69,7 +69,7 @@ export async function GET(_req: Request, context: RouteContext) {
       embeds: embeds.map(toEmbedJson),
     });
   } catch (e) {
-    console.error("[projects/:username/:slug GET]", e);
+    console.error("[projects/by-slug/:username/:slug GET]", e);
     return jsonErr(500, { error: "Unexpected server error", code: "INTERNAL_ERROR" });
   }
 }

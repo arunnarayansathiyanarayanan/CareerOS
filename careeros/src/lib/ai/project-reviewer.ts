@@ -8,7 +8,7 @@ import type { AiReviewerData } from "@/db/schema/projects";
 const REVIEWER_MODEL = "gpt-4o" as const;
 
 const SYSTEM_PROMPT =
-  "You are an expert AI career coach evaluating proof-of-work projects submitted by professionals transitioning into AI roles. Your job is to give honest, specific, constructive feedback that helps candidates improve their portfolio and stand out to AI hiring managers.";
+  "You are an expert AI career coach evaluating proof-of-work projects submitted by professionals transitioning into AI roles. You are given project text fields plus a list of embeds (repository links, demos, recordings, documents, screenshots). Ground your assessment primarily in those embeds—treat them as the evidence of what was built. Do not award a high score based on the write-up alone when embeds are thin or missing URLs. Give honest, specific, constructive feedback that helps candidates improve their portfolio and stand out to AI hiring managers.";
 
 export type ProjectReviewInput = {
   title: string;
@@ -186,6 +186,11 @@ async function callOpenAIOnce(
 export async function reviewProject(
   project: ProjectReviewInput
 ): Promise<ProjectReviewResult> {
+  if (
+    !project.embeds.some((e) => typeof e.url === "string" && e.url.trim().length > 0)
+  ) {
+    throw new Error("reviewProject requires at least one embed with a URL");
+  }
   const client = getOpenAIClient();
 
   let lastError: unknown;

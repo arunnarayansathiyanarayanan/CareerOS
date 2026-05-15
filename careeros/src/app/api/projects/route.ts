@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { autoTagSkills } from "@/lib/ai/skill-tagger";
 import { getClerkAppSession } from "@/lib/auth";
+import { ensureAppUserPublicUsername } from "@/lib/ensureAppUserPublicUsername";
 import { isSkillOntologyValue } from "@/lib/constants/skillOntology";
 import { getDb } from "@/db";
 import {
@@ -76,14 +77,11 @@ export async function POST(req: Request) {
       });
     }
 
-    if (!appUser.username?.trim()) {
-      return jsonErr(422, {
-        error: "A username is required before publishing a project",
-        code: "USERNAME_REQUIRED",
-      });
-    }
-
-    const username = appUser.username.trim();
+    const username = await ensureAppUserPublicUsername({
+      appUserId: appUser.id,
+      clerkUserId: session.clerkUserId,
+      username: appUser.username,
+    });
     const data = parsed.data;
     const draftId = data.draft_project_id;
 
