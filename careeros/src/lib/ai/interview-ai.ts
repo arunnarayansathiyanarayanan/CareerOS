@@ -1,7 +1,7 @@
 import { InterviewAIError } from "@/lib/ai/errors";
 import { openai } from "@/lib/ai/openai-client";
 import { withOpenAIRetry } from "@/lib/ai/openai-retry";
-import { buildInterviewSystemPrompt } from "@/lib/ai/question-bank";
+import { buildSystemPrompt, type SubMode } from "@/lib/ai/question-bank";
 import { synthesizeSpeech } from "@/lib/ai/tts";
 
 export type InterviewMessage = {
@@ -33,25 +33,13 @@ const INTERVIEW_MODEL = "gpt-4o" as const;
 const TEMPERATURE = 0.7;
 const MAX_TOKENS = 400;
 
-export function getInterviewSystemPrompt(
-  track: string,
-  subMode: string,
-  projects: InterviewContext["userProjects"]
-): string {
-  return buildInterviewSystemPrompt(track, subMode, projects);
-}
-
 function buildTurnAwareSystemPrompt(ctx: InterviewContext): string {
-  const base = getInterviewSystemPrompt(ctx.track, ctx.subMode, ctx.userProjects);
-  const progress = `Interview progress: turn ${ctx.turnNumber} of ${ctx.totalTurns}.`;
-  const finalTurnNote =
-    ctx.turnNumber === ctx.totalTurns
-      ? " This is the FINAL turn — thank the candidate, briefly summarize what you explored, and close the interview naturally. Do not ask another substantive question."
-      : ctx.turnNumber === 1
-        ? " Open the interview with a brief welcome and your first focused question."
-        : " Continue the conversation based on the candidate's prior answers.";
-
-  return `${base}\n\n${progress}${finalTurnNote}`;
+  return buildSystemPrompt(
+    ctx.subMode as SubMode,
+    ctx.userProjects,
+    ctx.turnNumber,
+    ctx.totalTurns
+  );
 }
 
 function toChatMessages(

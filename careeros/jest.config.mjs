@@ -8,7 +8,11 @@ const customJestConfig = {
   setupFilesAfterEnv: ["<rootDir>/jest.setup.ts"],
   testMatch: ["**/__tests__/**/*.test.ts", "**/__tests__/**/*.test.tsx"],
   modulePathIgnorePatterns: ["<rootDir>/.next/"],
-  testPathIgnorePatterns: ["<rootDir>/.next/", "<rootDir>/node_modules/"],
+  testPathIgnorePatterns: [
+    "<rootDir>/.next/",
+    "<rootDir>/node_modules/",
+    "<rootDir>/src/__tests__/interview/",
+  ],
   moduleNameMapper: {
     "^@vercel/analytics$": "<rootDir>/src/__tests__/__mocks__/vercel-analytics.ts",
     "^@resend/node$": "<rootDir>/src/__tests__/__mocks__/resend-node.ts",

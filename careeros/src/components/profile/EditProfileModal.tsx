@@ -32,6 +32,7 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Command,
   CommandEmpty,
@@ -105,6 +106,7 @@ function toFormValues(profile: ProfilePublicDTO): EditProfileFormValues {
     visibility: profile.visibility,
     location: profile.location ?? "",
     pinnedProjectIds: profile.pinnedProjects.map((p) => p.id),
+    interviewReadinessPublic: profile.interviewReadinessPublic,
   };
 }
 
@@ -117,6 +119,7 @@ function normalizeSubmitValues(values: EditProfileFormValues) {
     visibility: values.visibility,
     location: location.length > 0 ? location : null,
     pinnedProjectIds: values.pinnedProjectIds,
+    interviewReadinessPublic: values.interviewReadinessPublic,
   };
 }
 
@@ -390,6 +393,8 @@ export function EditProfileModal({ profile }: { profile: ProfilePublicDTO }) {
               input.availabilityStatus ?? previous.availabilityStatus,
             visibility: input.visibility ?? previous.visibility,
             location: input.location !== undefined ? input.location : previous.location,
+            interviewReadinessPublic:
+              input.interviewReadinessPublic ?? previous.interviewReadinessPublic,
           }
         );
       }
@@ -582,6 +587,32 @@ export function EditProfileModal({ profile }: { profile: ProfilePublicDTO }) {
                     </p>
                   ) : null}
                   <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="interviewReadinessPublic"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-start gap-3 rounded-lg border border-zinc-800 bg-zinc-900/40 p-4">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={(checked) =>
+                        field.onChange(checked === true)
+                      }
+                    />
+                  </FormControl>
+                  <div className="space-y-1 leading-none">
+                    <FormLabel className="text-zinc-200">
+                      Show interview readiness on public profile
+                    </FormLabel>
+                    <FormDescription>
+                      Displays your readiness scores after you complete at least 3
+                      mock interviews. Off by default.
+                    </FormDescription>
+                  </div>
                 </FormItem>
               )}
             />

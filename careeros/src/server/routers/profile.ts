@@ -28,6 +28,7 @@ import { users } from "@/db/schema/users";
 import { getClerkAppSession } from "@/lib/auth";
 import { tryAcquireProfileViewDedupSlot } from "@/lib/redis-profile-views";
 import { updateProfileInputSchema } from "@/lib/validators/profile";
+import { loadPublicInterviewReadiness } from "@/lib/interviews/public-profile-readiness";
 import {
   maybeAutoPinFirstPublishedProject,
   reconcileProfileSkillGraphFromPublishedProjects,
@@ -91,6 +92,15 @@ export type ProfileSkillGraphEntryDTO = {
   proficiency: number | null;
 };
 
+export type ProfileInterviewReadinessDTO = {
+  scores: {
+    track: string;
+    score: number;
+    session_count: number;
+    avg_overall_score: number;
+  }[];
+};
+
 /**
  * Public-safe payload for `[username]` profile pages (`headline`, skills, pinned work, streak).
  */
@@ -112,6 +122,9 @@ export type ProfilePublicDTO = {
   roadmapProgressPct: number;
   pinnedProjects: ProfilePinnedProjectDTO[];
   skillGraphTop: ProfileSkillGraphEntryDTO[];
+  /** Present when the owner opted in and has ≥3 completed interviews. */
+  interviewReadiness: ProfileInterviewReadinessDTO | null;
+  interviewReadinessPublic: boolean;
   viewerIsOwner: boolean;
 };
 
@@ -312,6 +325,12 @@ async function loadProfilePublicBundle(
       proficiency: r.proficiency,
     }));
 
+  const readinessScores = await loadPublicInterviewReadiness(
+    db,
+    prof.userId,
+    prof.interviewReadinessPublic
+  );
+
   return {
     userId: prof.userId,
     username: prof.username,
@@ -329,6 +348,11 @@ async function loadProfilePublicBundle(
     roadmapProgressPct: prof.roadmapProgressPct,
     pinnedProjects,
     skillGraphTop,
+    interviewReadiness:
+      readinessScores && readinessScores.length > 0
+        ? { scores: readinessScores }
+        : null,
+    interviewReadinessPublic: prof.interviewReadinessPublic,
     viewerIsOwner,
   };
 }
@@ -462,6 +486,9 @@ export const profileRouter = router({
           ...(input.location !== undefined ? { location: input.location } : {}),
           ...(input.pinnedProjectIds !== undefined
             ? { pinnedProjectIds: input.pinnedProjectIds }
+            : {}),
+          ...(input.interviewReadinessPublic !== undefined
+            ? { interviewReadinessPublic: input.interviewReadinessPublic }
             : {}),
           updatedAt: new Date(),
         })

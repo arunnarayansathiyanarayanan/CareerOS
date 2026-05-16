@@ -18,6 +18,7 @@ import { ProfileHero } from "@/components/profile/ProfileHero";
 import { ProfileViewsPanel } from "@/components/profile/ProfileViewsPanel";
 import { ProfileOwnerDock } from "@/components/profile/ProfileOwnerDock";
 import { ProfileViewTracker } from "@/components/profile/ProfileViewTracker";
+import { InterviewReadinessSection } from "@/components/profile/InterviewReadinessSection";
 import { RoadmapProgress } from "@/components/profile/RoadmapProgress";
 import { StreakBadge } from "@/components/profile/StreakBadge";
 import {
@@ -214,6 +215,14 @@ export default async function PublicProfilePage({ params }: PageProps) {
               <StreakBadge days={profile.streakDays} />
             </div>
           </div>
+
+          {profile.interviewReadiness ? (
+            <section className="mt-12">
+              <InterviewReadinessSection
+                scores={profile.interviewReadiness.scores}
+              />
+            </section>
+          ) : null}
 
           <section className="mt-12 min-h-[200px] space-y-4">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500">

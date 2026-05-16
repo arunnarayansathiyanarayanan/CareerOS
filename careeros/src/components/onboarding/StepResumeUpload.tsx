@@ -137,6 +137,7 @@ export function StepResumeUpload({
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploading, setUploading] = useState(false);
   const [parseFailed, setParseFailed] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const [skipped, setSkipped] = useState(false);
   const [rejectMessage, setRejectMessage] = useState<string | null>(null);
 
@@ -148,6 +149,7 @@ export function StepResumeUpload({
     setResumeParsed(null);
     setSkillsExtracted([]);
     setParseFailed(false);
+    setUploadError(null);
     setUploadProgress(0);
     setResumeUploaded(false);
   }, [setResumeUploaded]);
@@ -160,6 +162,7 @@ export function StepResumeUpload({
 
       setUploading(true);
       setParseFailed(false);
+      setUploadError(null);
       setUploadProgress(0);
       setSkipped(false);
       setRejectMessage(null);
@@ -183,7 +186,10 @@ export function StepResumeUpload({
         });
       } catch (e) {
         if (e instanceof DOMException && e.name === "AbortError") return;
+        const message =
+          e instanceof Error && e.message ? e.message : "Upload failed";
         setParseFailed(true);
+        setUploadError(message);
         setResumeUrl(null);
         setResumeParsed(null);
         setSkillsExtracted([]);
@@ -237,6 +243,7 @@ export function StepResumeUpload({
     setUploading(false);
     setUploadProgress(0);
     setParseFailed(false);
+    setUploadError(null);
     setRejectMessage(null);
     resetUploadOutcome();
     if (!resumeSkipEventSentRef.current) {
@@ -346,9 +353,14 @@ export function StepResumeUpload({
       ) : null}
 
       {parseFailed ? (
-        <p className="text-sm text-zinc-400" role="status">
-          Resume couldn&apos;t be parsed — skip for now and add it later
-        </p>
+        <div className="flex flex-col gap-1" role="status">
+          <p className="text-sm text-zinc-400">
+            Resume couldn&apos;t be parsed — skip for now and add it later
+          </p>
+          {uploadError && uploadError !== "Upload failed" ? (
+            <p className="text-xs text-zinc-500">{uploadError}</p>
+          ) : null}
+        </div>
       ) : null}
 
       {uploadSucceeded ? (

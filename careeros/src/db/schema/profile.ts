@@ -80,6 +80,9 @@ export const profiles = pgTable(
     streakDays: integer("streak_days").notNull().default(0),
     streakLastActivity: date("streak_last_activity"),
     roadmapProgressPct: smallint("roadmap_progress_pct").notNull().default(0),
+    interviewReadinessPublic: boolean("interview_readiness_public")
+      .notNull()
+      .default(false),
     pinnedProjectIds: uuid("pinned_project_ids")
       .array()
       .notNull()

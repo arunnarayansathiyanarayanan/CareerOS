@@ -194,7 +194,8 @@ Scoring guidance:
 
 const FEEDBACK_SYSTEM_PROMPT = `You are an expert AI interview coach for CareerOS. You evaluate mock interview transcripts for professionals targeting AI-native roles in the Indian job market. Be honest, specific, and constructive. Output only valid JSON matching the requested schema.`;
 
-function parseFeedbackResponse(rawJson: string): ParsedFeedback {
+/** Parses model JSON into {@link ParsedFeedback}. Exported for unit tests. */
+export function parseFeedbackResponse(rawJson: string): ParsedFeedback {
   let parsed: unknown;
   try {
     parsed = JSON.parse(rawJson);

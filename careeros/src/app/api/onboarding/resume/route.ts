@@ -2,7 +2,6 @@ import { auth } from "@clerk/nextjs/server";
 import OpenAI from "openai";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import mammoth from "mammoth";
-import { PDFParse } from "pdf-parse";
 import { NextResponse } from "next/server";
 
 import { getOpenAiModel } from "@/lib/openaiModel";
@@ -62,6 +61,7 @@ async function countUploadsLastHour(
 }
 
 async function extractPdfText(buffer: Buffer): Promise<string> {
+  const { PDFParse } = await import("pdf-parse");
   const parser = new PDFParse({ data: new Uint8Array(buffer) });
   try {
     const result = await parser.getText();

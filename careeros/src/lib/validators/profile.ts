@@ -30,6 +30,7 @@ export const updateProfileInputSchema = z.object({
   visibility: profileVisibilitySchema.optional(),
   location: z.union([z.string().max(100), z.null()]).optional(),
   pinnedProjectIds: z.array(z.string().uuid()).max(5).optional(),
+  interviewReadinessPublic: z.boolean().optional(),
 });
 
 /** Full form shape for Edit Profile modal (same field rules, all required). */
@@ -39,6 +40,7 @@ export const editProfileFormSchema = z.object({
   visibility: profileVisibilitySchema,
   location: z.string().max(100),
   pinnedProjectIds: z.array(z.string().uuid()).max(5),
+  interviewReadinessPublic: z.boolean(),
 });
 
 export type UpdateProfileInput = z.infer<typeof updateProfileInputSchema>;

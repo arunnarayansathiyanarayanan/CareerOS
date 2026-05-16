@@ -45,6 +45,8 @@ function isAppGuardedPath(pathname: string): boolean {
     pathname.startsWith("/dashboard/") ||
     pathname === "/projects" ||
     pathname.startsWith("/projects/") ||
+    pathname === "/interview" ||
+    pathname.startsWith("/interview/") ||
     pathname === "/app" ||
     pathname.startsWith("/app/")
   );
