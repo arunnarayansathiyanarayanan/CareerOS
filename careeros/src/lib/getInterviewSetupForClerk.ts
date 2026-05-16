@@ -1,7 +1,9 @@
 import { createClient } from "@supabase/supabase-js";
 
 import {
+  FREE_TIER_WEEKLY_SESSION_LIMIT,
   getOrCreateWeeklyQuota,
+  getWeeklySessionsUsed,
   isPaidInterviewTier,
   type WeeklyQuotaRow,
 } from "@/lib/interviews/quota";
@@ -57,9 +59,11 @@ export async function getInterviewSetupForClerk(
 
   const userId = userRow.id;
 
-  const [isPro, quota, projectsResult, readinessResult] = await Promise.all([
+  const [isPro, quota, weeklySessionsUsed, projectsResult, readinessResult] =
+    await Promise.all([
     isPaidInterviewTier(supabase, userId),
     getOrCreateWeeklyQuota(supabase, userId),
+    getWeeklySessionsUsed(supabase, userId),
     supabase
       .from("projects")
       .select("id, title, one_liner, ai_stack")
@@ -73,7 +77,7 @@ export async function getInterviewSetupForClerk(
       .select("track, score, session_count, avg_overall_score, computed_at")
       .eq("user_id", userId)
       .order("track", { ascending: true }),
-  ]);
+    ]);
 
   if (projectsResult.error) {
     console.error(
@@ -114,7 +118,10 @@ export async function getInterviewSetupForClerk(
 
   return {
     isPro,
-    quota,
+    quota: {
+      ...quota,
+      sessions_used: Math.min(weeklySessionsUsed, FREE_TIER_WEEKLY_SESSION_LIMIT),
+    },
     projects,
     readinessScores,
   };

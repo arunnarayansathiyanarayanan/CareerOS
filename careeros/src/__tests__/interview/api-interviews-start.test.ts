@@ -25,7 +25,9 @@ vi.mock("@/lib/auth/require-auth", () => ({
 }));
 
 vi.mock("@/lib/interviews/quota", () => ({
+  FREE_TIER_WEEKLY_SESSION_LIMIT: 1,
   isPaidInterviewTier: vi.fn(async () => quotaState.isPro),
+  hasFreeWeeklyQuotaRemaining: vi.fn(async () => quotaState.sessionsUsed < 1),
   getOrCreateWeeklyQuota: vi.fn(async () => ({
     id: "quota-row",
     user_id: authState.userId,
@@ -33,6 +35,7 @@ vi.mock("@/lib/interviews/quota", () => ({
     sessions_used: quotaState.sessionsUsed,
   })),
   incrementWeeklyQuotaUsed: vi.fn(async () => undefined),
+  deleteInterviewSession: vi.fn(async () => undefined),
   getNextMondayResetIso: () => "2026-05-18T00:00:00.000Z",
 }));
 
@@ -65,13 +68,16 @@ function mockSessionInsert() {
   }));
   const select = vi.fn(() => ({ single }));
   const insert = vi.fn(() => ({ select }));
+  const eqUser = vi.fn(async () => ({ error: null }));
+  const eqId = vi.fn(() => ({ eq: eqUser }));
+  const update = vi.fn(() => ({ eq: eqId }));
   supabaseMock.from.mockImplementation((table: string) => {
     if (table === "interview_sessions") {
-      return { insert };
+      return { insert, update };
     }
     return {};
   });
-  return { insert, single };
+  return { insert, single, update };
 }
 
 describe("POST /api/interviews/start", () => {
@@ -114,6 +120,32 @@ describe("POST /api/interviews/start", () => {
     expect(body.sessionId).toBe("session-abc-123");
     expect(body.totalTurns).toBeGreaterThan(0);
     expect(body.openingQuestion).toEqual(expect.any(String));
+  });
+
+  it("cleans up the session when opening audio fails", async () => {
+    const { synthesizeSpeech } = await import("@/lib/ai/tts");
+    const { deleteInterviewSession } = await import("@/lib/interviews/quota");
+    vi.mocked(synthesizeSpeech).mockRejectedValueOnce(new Error("tts down"));
+    mockSessionInsert();
+
+    const { POST } = await import("@/app/api/interviews/start/route");
+    const res = await POST(
+      new Request("http://localhost/api/interviews/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          track: "ai_pm",
+          subMode: "product_sense",
+        }),
+      })
+    );
+
+    expect(res.status).toBe(502);
+    expect(vi.mocked(deleteInterviewSession)).toHaveBeenCalledWith(
+      expect.anything(),
+      "session-abc-123",
+      authState.userId
+    );
   });
 
   it("returns 429 with resetAt when free tier is at limit", async () => {

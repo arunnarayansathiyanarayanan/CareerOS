@@ -269,7 +269,8 @@ export async function POST(req: Request, context: RouteContext) {
       audioUrl = await uploadInterviewAudio(
         sessionId,
         aiTurnNumber,
-        interviewerTurn.audioBuffer
+        interviewerTurn.audioBuffer,
+        supabase
       );
     }
 

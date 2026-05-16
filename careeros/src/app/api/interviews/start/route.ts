@@ -12,11 +12,15 @@ import {
 import { authErrorResponse, requireAuth } from "@/lib/auth/require-auth";
 import { validateProjectContextIds } from "@/lib/interviews/projects";
 import {
+  deleteInterviewSession,
+  FREE_TIER_WEEKLY_SESSION_LIMIT,
   getNextMondayResetIso,
   getOrCreateWeeklyQuota,
+  hasFreeWeeklyQuotaRemaining,
   incrementWeeklyQuotaUsed,
   isPaidInterviewTier,
 } from "@/lib/interviews/quota";
+import { formatInterviewPrepError } from "@/lib/interviews/prep-error";
 import { uploadInterviewAudio } from "@/lib/storage/interview-audio";
 import type { StartInterviewResponse } from "@/lib/interviews/types";
 
@@ -71,8 +75,8 @@ export async function POST(req: Request) {
 
     const paid = await isPaidInterviewTier(supabase, userId);
     if (!paid) {
-      const quota = await getOrCreateWeeklyQuota(supabase, userId);
-      if (quota.sessions_used >= 1) {
+      const hasQuota = await hasFreeWeeklyQuotaRemaining(supabase, userId);
+      if (!hasQuota) {
         return NextResponse.json(
           {
             error: "weekly_limit_reached",
@@ -132,17 +136,48 @@ export async function POST(req: Request) {
 
     const sessionId = session.id as string;
 
-    if (!paid) {
-      const quota = await getOrCreateWeeklyQuota(supabase, userId);
-      await incrementWeeklyQuotaUsed(
-        supabase,
-        quota.id,
-        quota.sessions_used
+    let audioUrl: string;
+    try {
+      const audioBuffer = await synthesizeSpeech(openingQuestion);
+      audioUrl = await uploadInterviewAudio(
+        sessionId,
+        0,
+        audioBuffer,
+        supabase
+      );
+    } catch (prepError) {
+      console.error("[interviews/start] opening audio:", prepError);
+      await deleteInterviewSession(supabase, sessionId, userId).catch(
+        (cleanupError) => {
+          console.error("[interviews/start] cleanup session:", cleanupError);
+        }
+      );
+      return NextResponse.json(
+        { error: formatInterviewPrepError(prepError) },
+        { status: 502 }
       );
     }
 
-    const audioBuffer = await synthesizeSpeech(openingQuestion);
-    const audioUrl = await uploadInterviewAudio(sessionId, 0, audioBuffer);
+    const { error: audioUrlError } = await supabase
+      .from("interview_sessions")
+      .update({ audio_url: audioUrl })
+      .eq("id", sessionId)
+      .eq("user_id", userId);
+
+    if (audioUrlError) {
+      console.error("[interviews/start] audio_url update:", audioUrlError);
+    }
+
+    if (!paid) {
+      const quota = await getOrCreateWeeklyQuota(supabase, userId);
+      const nextUsed = Math.min(
+        quota.sessions_used + 1,
+        FREE_TIER_WEEKLY_SESSION_LIMIT
+      );
+      if (quota.sessions_used < nextUsed) {
+        await incrementWeeklyQuotaUsed(supabase, quota.id, quota.sessions_used);
+      }
+    }
 
     const response: StartInterviewResponse = {
       sessionId,

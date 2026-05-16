@@ -97,7 +97,7 @@ export function InterviewSetupClient({
         const message =
           body.error === "weekly_limit_reached"
             ? "Weekly interview limit reached. Upgrade to Pro for unlimited sessions."
-            : typeof body.error === "string"
+            : typeof body.error === "string" && body.error.length > 0
               ? body.error
               : "Failed to start interview";
         toast.error(message);

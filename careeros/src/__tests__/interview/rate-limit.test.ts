@@ -1,31 +1,33 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { checkInterviewQuota } from "@/lib/interviews/rate-limit";
 
-function createQuotaSupabase(sessionsUsed: number) {
+vi.mock("@/lib/interviews/quota", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/interviews/quota")>();
   return {
-    rpc: vi.fn(async () => ({
-      data: {
-        id: "quota-1",
-        user_id: "user-1",
-        week_start: "2026-05-11",
-        sessions_used: sessionsUsed,
-      },
-      error: null,
-    })),
+    ...actual,
+    getWeeklySessionsUsed: vi.fn(),
   };
-}
+});
+
+import { getWeeklySessionsUsed } from "@/lib/interviews/quota";
+
+const getWeeklySessionsUsedMock = vi.mocked(getWeeklySessionsUsed);
 
 describe("checkInterviewQuota", () => {
+  beforeEach(() => {
+    getWeeklySessionsUsedMock.mockReset();
+  });
+
   it("allows free user with 0 sessions used", async () => {
-    const supabase = createQuotaSupabase(0);
-    const result = await checkInterviewQuota("user-1", supabase as never, false);
+    getWeeklySessionsUsedMock.mockResolvedValueOnce(0);
+    const result = await checkInterviewQuota("user-1", {} as never, false);
     expect(result).toEqual({ allowed: true });
   });
 
   it("denies free user with 1 session used and returns resetAt", async () => {
-    const supabase = createQuotaSupabase(1);
-    const result = await checkInterviewQuota("user-1", supabase as never, false);
+    getWeeklySessionsUsedMock.mockResolvedValueOnce(1);
+    const result = await checkInterviewQuota("user-1", {} as never, false);
     expect(result.allowed).toBe(false);
     if (!result.allowed) {
       expect(result.sessionsUsed).toBe(1);
@@ -34,9 +36,9 @@ describe("checkInterviewQuota", () => {
   });
 
   it("allows pro user regardless of session count", async () => {
-    const supabase = createQuotaSupabase(10);
-    const result = await checkInterviewQuota("user-1", supabase as never, true);
+    getWeeklySessionsUsedMock.mockClear();
+    const result = await checkInterviewQuota("user-1", {} as never, true);
     expect(result).toEqual({ allowed: true });
-    expect(supabase.rpc).not.toHaveBeenCalled();
+    expect(getWeeklySessionsUsedMock).not.toHaveBeenCalled();
   });
 });

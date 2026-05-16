@@ -4,9 +4,8 @@ import { Suspense } from "react";
 
 import { InterviewSetupClient } from "./InterviewSetupClient";
 import { getInterviewSetupForClerk } from "@/lib/getInterviewSetupForClerk";
+import { FREE_TIER_WEEKLY_SESSION_LIMIT } from "@/lib/interviews/quota";
 import { getOnboardingCompleteForClerk } from "@/lib/getOnboardingCompleteForClerk";
-
-const FREE_TIER_WEEKLY_LIMIT = 1;
 
 export default async function InterviewLobbyPage() {
   const { userId } = await auth();
@@ -35,7 +34,7 @@ export default async function InterviewLobbyPage() {
       <InterviewSetupClient
         isPro={setup.isPro}
         sessionsUsed={setup.quota.sessions_used}
-        weeklyLimit={FREE_TIER_WEEKLY_LIMIT}
+        weeklyLimit={FREE_TIER_WEEKLY_SESSION_LIMIT}
         projects={setup.projects}
         readinessScores={setup.readinessScores}
       />

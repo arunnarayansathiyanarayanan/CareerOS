@@ -1,19 +1,14 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-import { getNextMondayResetIso } from "@/lib/interviews/quota";
+import {
+  FREE_TIER_WEEKLY_SESSION_LIMIT,
+  getNextMondayResetIso,
+  getWeeklySessionsUsed,
+} from "@/lib/interviews/quota";
 
 export type QuotaCheckResult =
   | { allowed: true }
   | { allowed: false; resetAt: string; sessionsUsed: number };
-
-type WeeklyQuotaRow = {
-  id: string;
-  user_id: string;
-  week_start: string;
-  sessions_used: number;
-};
-
-const FREE_TIER_WEEKLY_SESSION_LIMIT = 1;
 
 export async function checkInterviewQuota(
   userId: string,
@@ -24,24 +19,16 @@ export async function checkInterviewQuota(
     return { allowed: true };
   }
 
-  const { data, error } = await supabase.rpc("get_or_create_weekly_quota", {
-    p_user_id: userId,
-  });
+  const sessionsUsed = await getWeeklySessionsUsed(supabase, userId);
 
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  const quota = data as WeeklyQuotaRow;
-
-  if (quota.sessions_used < FREE_TIER_WEEKLY_SESSION_LIMIT) {
+  if (sessionsUsed < FREE_TIER_WEEKLY_SESSION_LIMIT) {
     return { allowed: true };
   }
 
   return {
     allowed: false,
     resetAt: getNextMondayResetIso(),
-    sessionsUsed: quota.sessions_used,
+    sessionsUsed,
   };
 }
 
