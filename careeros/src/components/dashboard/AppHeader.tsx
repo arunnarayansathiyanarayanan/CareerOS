@@ -48,6 +48,13 @@ export function AppHeader({
           >
             Interviews
           </Link>
+          <Link
+            href="/resume"
+            className={navLink}
+            data-active={pathname?.startsWith("/resume") ? "true" : "false"}
+          >
+            Resume
+          </Link>
           {profilePath ? (
             <Link
               href={profilePath}
