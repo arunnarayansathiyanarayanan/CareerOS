@@ -138,7 +138,7 @@ export function UploadZone({
 
       onResumeCreated?.({ resumeId, versionId, targetRole });
 
-      const genRes = await fetch(`/api/resume/${versionId}/generate`, {
+      const genRes = await fetch(`/api/resume/versions/${versionId}/generate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

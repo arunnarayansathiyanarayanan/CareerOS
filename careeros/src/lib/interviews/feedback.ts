@@ -16,6 +16,7 @@ import type {
   TranscriptEntry,
 } from "@/lib/interviews/types";
 import { recordStreakAction } from "@/lib/streak/record-action";
+import * as streakService from "@/server/services/streak.service";
 
 function feedbackRowToParsed(row: {
   overall_score: number;
@@ -157,6 +158,12 @@ export async function generateAndPersistInterviewFeedback(
   } catch (streakError) {
     console.error("[interviews/feedback] streak record:", streakError);
   }
+
+  streakService
+    .recordStreakEvent(userId, "INTERVIEW_DONE", {
+      interviewId: session.id,
+    })
+    .catch((e) => console.error("streak event failed", e));
 
   return feedback;
 }

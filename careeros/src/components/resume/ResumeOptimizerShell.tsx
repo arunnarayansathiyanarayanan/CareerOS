@@ -37,7 +37,7 @@ export function ResumeOptimizerShell() {
   const loadVariantsForVersion = useCallback(async (versionId: string) => {
     setLoadingVersion(true);
     try {
-      const res = await fetch(`/api/resume/${versionId}/variants`);
+      const res = await fetch(`/api/resume/versions/${versionId}/variants`);
       const data = (await res.json()) as {
         variants?: ResumeVariantClient[];
         version?: { targetRole: TargetRole };

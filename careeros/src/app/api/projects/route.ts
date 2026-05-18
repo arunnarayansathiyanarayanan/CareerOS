@@ -24,6 +24,9 @@ import {
   maybeAutoPinFirstPublishedProject,
   syncProfileSkillGraphFromStacks,
 } from "@/services/syncProfileSkillGraph";
+import * as cohortService from "@/server/services/cohort.service";
+import * as leaderboardService from "@/server/services/leaderboard.service";
+import * as streakService from "@/server/services/streak.service";
 
 export const runtime = "nodejs";
 
@@ -316,6 +319,20 @@ export async function POST(req: Request) {
       projectId,
       data.privacy_mode
     );
+
+    if (data.privacy_mode === "public") {
+      Promise.all([
+        streakService
+          .recordStreakEvent(appUser.id, "PROJECT_PUBLISHED", { projectId })
+          .catch((e) => console.error("streak event failed", e)),
+        cohortService
+          .getUserCohort(appUser.id)
+          .then(({ cohort }) =>
+            leaderboardService.computeUserScore(appUser.id, cohort.id),
+          )
+          .catch((e) => console.error("leaderboard update failed", e)),
+      ]);
+    }
 
     void (async () => {
       try {

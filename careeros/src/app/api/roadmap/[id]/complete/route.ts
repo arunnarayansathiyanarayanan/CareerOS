@@ -12,6 +12,7 @@ import {
 } from "@/lib/calculateAiNativeReadyScore";
 import { checkCompletionGate } from "@/lib/checkCompletionGate";
 import type { RoadmapItem } from "@/types/roadmap";
+import * as streakService from "@/server/services/streak.service";
 
 export const runtime = "nodejs";
 
@@ -173,6 +174,10 @@ export async function POST(req: Request, context: RouteContext) {
 
       return { row, newScore };
     });
+
+    streakService
+      .recordStreakEvent(user.id, "CONCEPT_COMPLETE", { itemId })
+      .catch((e) => console.error("streak event failed", e));
 
     return NextResponse.json(
       successPayload(

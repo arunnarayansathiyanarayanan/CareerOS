@@ -11,6 +11,9 @@ import { makeQueryClient } from "./query-client";
 
 export const trpc = createTRPCReact<AppRouter>();
 
+/** Alias used by community components and newer feature code. */
+export const api = trpc;
+
 function getBaseUrl() {
   if (typeof window !== "undefined") return "";
   if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;

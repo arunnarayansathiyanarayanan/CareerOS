@@ -4,13 +4,19 @@ import { UserButton } from "@clerk/nextjs";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { StreakRing } from "@/components/streak/StreakRing";
+
 const navLink =
   "text-sm text-zinc-400 transition-colors hover:text-zinc-100 data-[active=true]:text-zinc-100";
 
 export function AppHeader({
   profileUsername = null,
+  currentStreak = 0,
+  longestStreak = 0,
 }: {
   profileUsername?: string | null;
+  currentStreak?: number;
+  longestStreak?: number;
 }) {
   const pathname = usePathname();
   const profilePath = profileUsername
@@ -55,6 +61,13 @@ export function AppHeader({
           >
             Resume
           </Link>
+          <Link
+            href="/community"
+            className={navLink}
+            data-active={pathname?.startsWith("/community") ? "true" : "false"}
+          >
+            Community
+          </Link>
           {profilePath ? (
             <Link
               href={profilePath}
@@ -66,7 +79,14 @@ export function AppHeader({
           ) : null}
         </nav>
       </div>
-      <UserButton afterSignOutUrl="/sign-in" />
+      <div className="flex items-center gap-3">
+        <StreakRing
+          currentStreak={currentStreak}
+          longestStreak={longestStreak}
+          size="sm"
+        />
+        <UserButton afterSignOutUrl="/sign-in" />
+      </div>
     </header>
   );
 }

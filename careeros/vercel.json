@@ -3,6 +3,22 @@
     {
       "path": "/api/cron/roadmap-regen",
       "schedule": "30 20 * * 0"
+    },
+    {
+      "path": "/api/cron/streak-reset",
+      "schedule": "35 18 * * *"
+    },
+    {
+      "path": "/api/cron/leaderboard-refresh",
+      "schedule": "30 20 * * *"
+    },
+    {
+      "path": "/api/cron/challenge-lifecycle",
+      "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/peer-review-reminder",
+      "schedule": "0 */6 * * *"
     }
   ]
 }

@@ -1,4 +1,5 @@
-import { and, desc, eq, inArray, isNotNull } from "drizzle-orm";
+import { and, desc, eq, ilike, inArray, isNotNull, or } from "drizzle-orm";
+import { z } from "zod";
 
 import { projects } from "@/db/schema/projects";
 
@@ -12,7 +13,42 @@ export type ProjectListMineItem = {
   publishedAt: string | null;
 };
 
+export type ProjectSearchItem = {
+  id: string;
+  title: string;
+  slug: string;
+  oneLiner: string;
+};
+
 export const projectRouter = router({
+  /** Search the signed-in user's published projects by title or one-liner. */
+  search: protectedProcedure
+    .input(z.object({ q: z.string().min(1).max(100) }))
+    .query(async ({ ctx, input }) => {
+      const term = `%${input.q.trim()}%`;
+      const rows = await ctx.db
+        .select({
+          id: projects.id,
+          title: projects.title,
+          slug: projects.slug,
+          oneLiner: projects.oneLiner,
+        })
+        .from(projects)
+        .where(
+          and(
+            eq(projects.userId, ctx.appUser.id),
+            eq(projects.isDeleted, false),
+            isNotNull(projects.publishedAt),
+            inArray(projects.privacyMode, ["public", "unlisted"]),
+            or(ilike(projects.title, term), ilike(projects.oneLiner, term)),
+          ),
+        )
+        .orderBy(desc(projects.publishedAt))
+        .limit(8);
+
+      return rows satisfies ProjectSearchItem[];
+    }),
+
   /** Published public/unlisted projects for the signed-in owner (profile pin picker). */
   listMine: protectedProcedure.query(async ({ ctx }) => {
     const rows = await ctx.db
