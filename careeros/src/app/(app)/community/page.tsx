@@ -1,5 +1,4 @@
 import { auth } from "@clerk/nextjs/server";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import {
@@ -8,8 +7,8 @@ import {
   LeaderboardWidget,
 } from "@/components/community";
 import { StreakRing } from "@/components/streak/StreakRing";
-import { Button } from "@/components/ui/button";
 import { getOnboardingCompleteForClerk } from "@/lib/getOnboardingCompleteForClerk";
+import { getOnboardingTargetRoleForClerk } from "@/lib/getOnboardingTargetRoleForClerk";
 import type { Cohort } from "@/server/db/schema/community.schema";
 import * as cohortService from "@/server/services/cohort.service";
 import * as streakService from "@/server/services/streak.service";
@@ -33,10 +32,12 @@ export default async function CommunityPage() {
 
   const userId = session.appUser.id;
 
+  const targetRole = await getOnboardingTargetRoleForClerk(clerkUserId);
+
   const [streakRow, recentEvents, cohortResult] = await Promise.all([
     streakService.getUserStreak(userId),
     streakService.getRecentStreakEvents(userId, 30),
-    cohortService.getUserCohort(userId).catch(() => null),
+    cohortService.ensureUserCohort(userId, targetRole).catch(() => null),
   ]);
 
   const cohort: Cohort | null = cohortResult?.cohort ?? null;
@@ -60,14 +61,11 @@ export default async function CommunityPage() {
         </div>
 
         {!cohort ? (
-          <div className="mt-4 flex flex-col gap-3 rounded-xl border border-zinc-800 bg-zinc-900/40 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="mt-4 rounded-xl border border-zinc-800 bg-zinc-900/40 px-4 py-3">
             <p className="text-sm text-zinc-400">
-              You haven&apos;t joined a cohort yet. Complete onboarding to get
-              matched.
+              We couldn&apos;t place you in a cohort yet. Refresh the page, or
+              try again in a moment.
             </p>
-            <Button asChild size="sm" variant="secondary">
-              <Link href="/onboarding">Complete onboarding</Link>
-            </Button>
           </div>
         ) : null}
       </header>

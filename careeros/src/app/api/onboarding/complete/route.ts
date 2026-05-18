@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import { setOnboardingGateCookie } from "@/lib/onboardingMiddlewareCache";
 import { targetRoleFromOnboardingSelection } from "@/lib/mapOnboardingTargetRole";
+import * as cohortService from "@/server/services/cohort.service";
 import { ONBOARDING_TARGET_ROLE_ASSIGNABLE } from "@/lib/onboardingTargetRoleSpec";
 import { generateAndPersistRoadmap } from "@/services/generateAndPersistRoadmap";
 import { sendWelcomeEmail } from "@/services/notifications";
@@ -220,6 +221,15 @@ export async function POST(req: Request) {
     if (completeError) {
       console.error("[onboarding/complete] mark complete:", completeError);
       return jsonError(502, "Failed to finalize onboarding", "PROFILE_UPDATE_FAILED");
+    }
+
+    try {
+      await cohortService.ensureUserCohort(
+        internalUserId,
+        targetRoleFromOnboardingSelection(body.targetRole),
+      );
+    } catch (e) {
+      console.error("[onboarding/complete] cohort assign:", e);
     }
 
     const claimedUsername = (userRow.username as string | null | undefined)?.trim();

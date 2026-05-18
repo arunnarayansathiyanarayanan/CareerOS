@@ -62,6 +62,13 @@ export function AppHeader({
             Resume
           </Link>
           <Link
+            href="/skills"
+            className={navLink}
+            data-active={pathname?.startsWith("/skills") ? "true" : "false"}
+          >
+            Skills
+          </Link>
+          <Link
             href="/community"
             className={navLink}
             data-active={pathname?.startsWith("/community") ? "true" : "false"}

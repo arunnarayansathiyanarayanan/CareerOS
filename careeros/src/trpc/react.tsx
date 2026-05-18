@@ -1,7 +1,7 @@
 "use client";
 
 import { QueryClientProvider } from "@tanstack/react-query";
-import { httpBatchLink } from "@trpc/client";
+import { httpBatchLink, httpBatchStreamLink, splitLink } from "@trpc/client";
 import { createTRPCReact } from "@trpc/react-query";
 import { useState } from "react";
 
@@ -25,8 +25,14 @@ export function TRPCReactProvider({ children }: { children: React.ReactNode }) {
   const [trpcClient] = useState(() =>
     trpc.createClient({
       links: [
-        httpBatchLink({
-          url: `${getBaseUrl()}/api/trpc`,
+        splitLink({
+          condition: (op) => op.type === "mutation" && op.path === "skillIntelligence.askAdvisor",
+          true: httpBatchStreamLink({
+            url: `${getBaseUrl()}/api/trpc`,
+          }),
+          false: httpBatchLink({
+            url: `${getBaseUrl()}/api/trpc`,
+          }),
         }),
       ],
     })

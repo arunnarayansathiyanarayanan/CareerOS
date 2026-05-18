@@ -1,3 +1,4 @@
+import { createId } from "@paralleldrive/cuid2";
 import { getISOWeek, getYear } from "date-fns";
 import { and, count, eq, sql } from "drizzle-orm";
 
@@ -7,6 +8,9 @@ import {
   cohorts,
   type Role,
 } from "@/server/db/schema/community.schema";
+
+/** Default bucket when onboarding does not collect timezone. */
+export const DEFAULT_COHORT_TIMEZONE = "UTC";
 
 export class ConflictError extends Error {
   statusCode = 409;
@@ -68,6 +72,7 @@ export async function assignUserToCohort(
     const [created] = await db
       .insert(cohorts)
       .values({
+        id: createId(),
         name: `${targetRole} · ${timezone} · ${weekStr}`,
         targetRole,
         timezone,
@@ -98,7 +103,7 @@ export async function assignUserToCohort(
 
     const [inserted] = await tx
       .insert(cohortMembers)
-      .values({ userId, cohortId })
+      .values({ id: createId(), userId, cohortId })
       .returning();
 
     if (!inserted) {
@@ -107,6 +112,34 @@ export async function assignUserToCohort(
 
     return inserted;
   });
+}
+
+export async function ensureUserCohort(
+  userId: string,
+  targetRole: Role,
+  timezone: string = DEFAULT_COHORT_TIMEZONE,
+): Promise<{
+  cohort: typeof cohorts.$inferSelect;
+  members: (typeof cohortMembers.$inferSelect)[];
+}> {
+  try {
+    return await getUserCohort(userId);
+  } catch (e) {
+    if (!(e instanceof NotFoundError)) {
+      throw e;
+    }
+  }
+
+  try {
+    await assignUserToCohort(userId, targetRole, timezone);
+  } catch (e) {
+    if (e instanceof ConflictError) {
+      return getUserCohort(userId);
+    }
+    throw e;
+  }
+
+  return getUserCohort(userId);
 }
 
 export async function getUserCohort(

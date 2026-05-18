@@ -20,6 +20,7 @@ import {
   toProjectJson,
 } from "@/lib/projectsApiShared";
 import { projectPublicDisplayUrl } from "@/lib/projectsUrls";
+import { syncProjectSkills } from "@/lib/syncProjectSkills";
 import {
   maybeAutoPinFirstPublishedProject,
   syncProfileSkillGraphFromStacks,
@@ -314,6 +315,11 @@ export async function POST(req: Request) {
     const problemSnapshot = data.problem_solved;
 
     await syncProfileSkillGraphFromStacks(appUser.id, [stackSnapshot]);
+    try {
+      await syncProjectSkills(projectId, appUser.id, stackSnapshot);
+    } catch (e) {
+      console.error("[projects POST] syncProjectSkills failed", e);
+    }
     await maybeAutoPinFirstPublishedProject(
       appUser.id,
       projectId,
