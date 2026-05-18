@@ -5,6 +5,10 @@ import {
   normalizeTranscript,
 } from "@/lib/interviews/transcript";
 import type { InterviewSessionRow } from "@/lib/interviews/types";
+import {
+  buildPublicAudioUrl,
+  maxInterviewerTurn,
+} from "@/lib/storage/interview-audio";
 export type StudioTranscriptEntry = {
   role: "interviewer" | "candidate";
   content: string;
@@ -41,13 +45,16 @@ export function buildInterviewStudioProps(
 
   const subMode = session.sub_mode as SubMode;
   const totalTurns = TURNS_BY_SUB_MODE[subMode] ?? 8;
+  const lastInterviewerTurn = maxInterviewerTurn(transcript);
+  const latestAudioUrl =
+    buildPublicAudioUrl(session.id, lastInterviewerTurn) ?? session.audio_url;
 
   return {
     sessionId: session.id,
     mode: session.mode,
     transcript: liveTranscript,
     currentQuestion: lastInterviewer?.content ?? "",
-    currentAudioUrl: session.audio_url,
+    currentAudioUrl: latestAudioUrl,
     turnNumber: expectedUserTurnNumber(transcript),
     totalTurns,
     initialState: candidateTurns > 0 ? "listening" : "mic_check",

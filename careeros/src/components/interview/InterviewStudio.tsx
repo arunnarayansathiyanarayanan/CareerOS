@@ -34,7 +34,7 @@ type InterviewStudioProps = InterviewStudioInitialProps;
 export function InterviewStudio(initial: InterviewStudioProps) {
   const router = useRouter();
   const resumedRef = useRef(false);
-  const [transcriptCollapsed, setTranscriptCollapsed] = useState(true);
+  const [transcriptCollapsed, setTranscriptCollapsed] = useState(false);
 
   const {
     interviewState,
@@ -192,8 +192,17 @@ export function InterviewStudio(initial: InterviewStudioProps) {
                         ? "Paused"
                         : isRecording
                           ? `Recording… ${displaySeconds}s`
-                          : "Listening…"}
+                          : "Tap the button below when you're ready to answer"}
                     </p>
+                    {!isRecording && !isPaused && (
+                      <Button
+                        type="button"
+                        className="bg-[#6366F1] text-white hover:bg-[#5558E3]"
+                        onClick={() => startRecording()}
+                      >
+                        Start answering
+                      </Button>
+                    )}
                     {isRecording && !isPaused && (
                       <button
                         type="button"
@@ -245,6 +254,13 @@ export function InterviewStudio(initial: InterviewStudioProps) {
                 entries={liveTranscript}
                 isCollapsed={transcriptCollapsed}
                 onToggle={() => setTranscriptCollapsed((v) => !v)}
+                recordingHint={
+                  interviewState === "listening" && isRecording && !isPaused
+                    ? "Speaking… transcript appears after you stop"
+                    : interviewState === "processing"
+                      ? "Processing your answer…"
+                      : null
+                }
               />
             </aside>
           )}

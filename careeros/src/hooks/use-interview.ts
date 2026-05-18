@@ -131,6 +131,11 @@ export function useInterview(): UseInterviewReturn {
   const openingPlayedRef = useRef(false);
   const submitInFlightRef = useRef(false);
 
+  const setInterviewStateSync = useCallback((next: InterviewState) => {
+    interviewStateRef.current = next;
+    setInterviewState(next);
+  }, []);
+
   const clearRecordingTimers = useCallback(() => {
     if (durationIntervalRef.current !== null) {
       clearInterval(durationIntervalRef.current);
@@ -189,7 +194,7 @@ export function useInterview(): UseInterviewReturn {
 
         const data = (await res.json()) as FeedbackResponse | { error: string };
         if ("feedback" in data && data.feedback) {
-          setInterviewState("completed");
+          setInterviewStateSync("completed");
           return;
         }
         if ("status" in data && data.status === "pending") {
@@ -200,8 +205,8 @@ export function useInterview(): UseInterviewReturn {
       }
     }
 
-    setInterviewState("completed");
-  }, []);
+    setInterviewStateSync("completed");
+  }, [setInterviewStateSync]);
 
   const playInterviewerAudioRef = useRef<(audioUrl: string | null, onDone: () => void) => void>(
     () => undefined
@@ -217,7 +222,7 @@ export function useInterview(): UseInterviewReturn {
     }
 
     stopPlayback();
-    setInterviewState("speaking");
+    setInterviewStateSync("speaking");
 
     const audio = new Audio(audioUrl);
     playbackAudioRef.current = audio;
@@ -233,11 +238,9 @@ export function useInterview(): UseInterviewReturn {
   };
 
   beginListeningRef.current = (autoRecord) => {
-    setInterviewState("listening");
+    setInterviewStateSync("listening");
     if (autoRecord && modeRef.current === "voice" && !isPausedRef.current) {
-      queueMicrotask(() => {
-        void startMicCaptureRef.current();
-      });
+      void startMicCaptureRef.current();
     } else if (autoRecord && isPausedRef.current) {
       pendingAutoStartRef.current = true;
     }
@@ -271,7 +274,7 @@ export function useInterview(): UseInterviewReturn {
         if (sid) {
           await pollFeedback(sid);
         } else {
-          setInterviewState("completed");
+          setInterviewStateSync("completed");
         }
         return;
       }
@@ -284,7 +287,7 @@ export function useInterview(): UseInterviewReturn {
         }
       });
     },
-    [pollFeedback, stopPlayback]
+    [pollFeedback, setInterviewStateSync, stopPlayback]
   );
 
   const submitTurn = useCallback(
@@ -293,7 +296,7 @@ export function useInterview(): UseInterviewReturn {
       if (!sid || submitInFlightRef.current) return;
 
       submitInFlightRef.current = true;
-      setInterviewState("processing");
+      setInterviewStateSync("processing");
       setErrorMessage(null);
 
       try {
@@ -313,7 +316,7 @@ export function useInterview(): UseInterviewReturn {
             setMode("text");
             modeRef.current = "text";
             toast.message("Switching to text mode for this turn.");
-            setInterviewState("listening");
+            setInterviewStateSync("listening");
             return;
           }
 
@@ -322,14 +325,14 @@ export function useInterview(): UseInterviewReturn {
             setErrorMessage(
               `Weekly interview limit reached. You can start a new session after ${resetDate}.`
             );
-            setInterviewState("error");
+            setInterviewStateSync("error");
             return;
           }
 
           setErrorMessage(
             typeof body.error === "string" ? body.error : "Failed to submit turn"
           );
-          setInterviewState("error");
+          setInterviewStateSync("error");
           return;
         }
 
@@ -337,12 +340,12 @@ export function useInterview(): UseInterviewReturn {
         await handleTurnResponse(body, transcriptText);
       } catch {
         setErrorMessage("Network error. Please try again.");
-        setInterviewState("error");
+        setInterviewStateSync("error");
       } finally {
         submitInFlightRef.current = false;
       }
     },
-    [handleTurnResponse]
+    [handleTurnResponse, setInterviewStateSync]
   );
 
   const startMicCaptureRef = useRef<() => Promise<void>>(async () => undefined);
@@ -389,7 +392,7 @@ export function useInterview(): UseInterviewReturn {
       }, MAX_RECORDING_SECONDS * 1000);
     } catch {
       setErrorMessage("Microphone access is required for voice mode.");
-      setInterviewState("error");
+      setInterviewStateSync("error");
     }
   };
 
@@ -451,9 +454,13 @@ export function useInterview(): UseInterviewReturn {
       turnNumberRef.current = params.turnNumber;
       setTotalTurns(params.totalTurns);
       openingPlayedRef.current = params.openingAlreadyPlayed ?? false;
-      setInterviewState(params.initialState ?? "mic_check");
+      const initialState = params.initialState ?? "mic_check";
+      setInterviewStateSync(initialState);
+      if (initialState === "listening" && params.mode === "voice") {
+        pendingAutoStartRef.current = true;
+      }
     },
-    [cleanupAll]
+    [cleanupAll, setInterviewStateSync]
   );
 
   const togglePause = useCallback(() => {
@@ -496,7 +503,7 @@ export function useInterview(): UseInterviewReturn {
   const startInterview = useCallback(
     async (params: StartParams) => {
       cleanupAll();
-      setInterviewState("starting");
+      setInterviewStateSync("starting");
       setErrorMessage(null);
       setIsComplete(false);
       setMode("voice");
@@ -533,7 +540,7 @@ export function useInterview(): UseInterviewReturn {
               typeof body.error === "string" ? body.error : "Failed to start interview"
             );
           }
-          setInterviewState("error");
+          setInterviewStateSync("error");
           return;
         }
 
@@ -551,13 +558,13 @@ export function useInterview(): UseInterviewReturn {
             audioUrl: body.audioUrl,
           },
         ]);
-        setInterviewState("mic_check");
+        setInterviewStateSync("mic_check");
       } catch {
         setErrorMessage("Network error. Please try again.");
-        setInterviewState("error");
+        setInterviewStateSync("error");
       }
     },
-    [cleanupAll]
+    [cleanupAll, setInterviewStateSync]
   );
 
   const startRecording = useCallback(() => {
@@ -565,7 +572,7 @@ export function useInterview(): UseInterviewReturn {
       openingPlayedRef.current = true;
 
       if (modeRef.current === "text") {
-        setInterviewState("listening");
+        setInterviewStateSync("listening");
         return;
       }
 
@@ -588,8 +595,8 @@ export function useInterview(): UseInterviewReturn {
     stopMediaRecorder();
     setMode("text");
     modeRef.current = "text";
-    setInterviewState("listening");
-  }, [stopMediaRecorder]);
+    setInterviewStateSync("listening");
+  }, [stopMediaRecorder, setInterviewStateSync]);
 
   const submitTextTurn = useCallback(async () => {
     const trimmed = textInput.trim();
@@ -612,7 +619,7 @@ export function useInterview(): UseInterviewReturn {
     setIsPaused(false);
     isPausedRef.current = false;
     pendingAutoStartRef.current = false;
-    setInterviewState("idle");
+    setInterviewStateSync("idle");
     setMode("voice");
     modeRef.current = "voice";
     setSessionId(null);
@@ -627,7 +634,23 @@ export function useInterview(): UseInterviewReturn {
     setTextInputState("");
     setErrorMessage(null);
     setIsComplete(false);
-  }, [cleanupAll]);
+  }, [cleanupAll, setInterviewStateSync]);
+
+  useEffect(() => {
+    if (
+      interviewState !== "listening" ||
+      mode !== "voice" ||
+      isRecording ||
+      isPaused ||
+      submitInFlightRef.current ||
+      !pendingAutoStartRef.current
+    ) {
+      return;
+    }
+
+    pendingAutoStartRef.current = false;
+    void startMicCaptureRef.current();
+  }, [interviewState, mode, isRecording, isPaused]);
 
   const setTextInput = useCallback((v: string) => {
     setTextInputState(v);

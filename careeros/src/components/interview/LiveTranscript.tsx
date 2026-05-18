@@ -10,12 +10,15 @@ type LiveTranscriptProps = {
   entries: LiveTranscriptEntry[];
   isCollapsed: boolean;
   onToggle: () => void;
+  /** Shown while the candidate is recording (no streaming STT yet). */
+  recordingHint?: string | null;
 };
 
 export function LiveTranscript({
   entries,
   isCollapsed,
   onToggle,
+  recordingHint = null,
 }: LiveTranscriptProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -54,7 +57,7 @@ export function LiveTranscript({
             : "max-h-[40vh] opacity-100 lg:max-h-none"
         )}
       >
-        {entries.length === 0 ? (
+        {entries.length === 0 && !recordingHint ? (
           <p className="text-[#71717A]">Transcript will appear here…</p>
         ) : (
           <ul className="space-y-4">
@@ -88,6 +91,16 @@ export function LiveTranscript({
                 </p>
               </li>
             ))}
+            {recordingHint ? (
+              <li className="ml-6 animate-pulse text-right">
+                <span className="mb-1 inline-block rounded bg-white/5 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-[#71717A]">
+                  You
+                </span>
+                <p className="italic leading-relaxed text-[#71717A]">
+                  {recordingHint}
+                </p>
+              </li>
+            ) : null}
           </ul>
         )}
       </div>
