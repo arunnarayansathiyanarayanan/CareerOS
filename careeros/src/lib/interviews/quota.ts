@@ -2,6 +2,9 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 export const FREE_TIER_WEEKLY_SESSION_LIMIT = 1;
 
+/** Set to true when re-enabling the free-tier weekly cap. */
+export const INTERVIEW_WEEKLY_LIMIT_ENABLED = false;
+
 export type WeeklyQuotaRow = {
   id: string;
   user_id: string;
@@ -201,6 +204,9 @@ export async function hasFreeWeeklyQuotaRemaining(
   supabase: SupabaseClient,
   userId: string
 ): Promise<boolean> {
+  if (!INTERVIEW_WEEKLY_LIMIT_ENABLED) {
+    return true;
+  }
   const used = await getWeeklySessionsUsed(supabase, userId);
   return used < FREE_TIER_WEEKLY_SESSION_LIMIT;
 }

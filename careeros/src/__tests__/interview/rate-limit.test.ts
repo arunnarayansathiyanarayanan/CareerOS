@@ -6,6 +6,7 @@ vi.mock("@/lib/interviews/quota", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/interviews/quota")>();
   return {
     ...actual,
+    INTERVIEW_WEEKLY_LIMIT_ENABLED: true,
     getWeeklySessionsUsed: vi.fn(),
   };
 });

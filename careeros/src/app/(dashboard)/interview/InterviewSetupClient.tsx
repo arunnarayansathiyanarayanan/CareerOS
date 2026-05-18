@@ -17,6 +17,7 @@ import {
   type Track,
 } from "@/lib/ai/question-bank";
 import type { InterviewSetupProject } from "@/lib/getInterviewSetupForClerk";
+import { INTERVIEW_WEEKLY_LIMIT_ENABLED } from "@/lib/interviews/quota";
 import type { ReadinessScore, StartInterviewResponse } from "@/lib/interviews/types";
 import { cn } from "@/lib/utils";
 
@@ -58,7 +59,8 @@ export function InterviewSetupClient({
     setSelectedSubMode(subModeParam as SubMode);
   }, [searchParams]);
 
-  const atQuotaLimit = !isPro && sessionsUsed >= weeklyLimit;
+  const atQuotaLimit =
+    INTERVIEW_WEEKLY_LIMIT_ENABLED && !isPro && sessionsUsed >= weeklyLimit;
   const canStart =
     selectedTrack != null &&
     selectedSubMode != null &&
@@ -150,13 +152,15 @@ export function InterviewSetupClient({
         />
 
         <section className="rounded-xl border border-zinc-800 bg-[#1A1A1A] p-4 sm:p-5">
-          {!isPro ? (
-            <p className="text-xs text-zinc-500">
-              {sessionsUsed} of {weeklyLimit} interviews used this week
-            </p>
-          ) : (
-            <p className="text-xs text-zinc-500">Pro — unlimited interviews</p>
-          )}
+          {INTERVIEW_WEEKLY_LIMIT_ENABLED ? (
+            !isPro ? (
+              <p className="text-xs text-zinc-500">
+                {sessionsUsed} of {weeklyLimit} interviews used this week
+              </p>
+            ) : (
+              <p className="text-xs text-zinc-500">Pro — unlimited interviews</p>
+            )
+          ) : null}
 
           {atQuotaLimit ? (
             <p className="mt-2 text-sm text-zinc-400">

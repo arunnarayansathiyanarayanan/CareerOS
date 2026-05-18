@@ -18,6 +18,7 @@ import {
   getOrCreateWeeklyQuota,
   hasFreeWeeklyQuotaRemaining,
   incrementWeeklyQuotaUsed,
+  INTERVIEW_WEEKLY_LIMIT_ENABLED,
   isPaidInterviewTier,
 } from "@/lib/interviews/quota";
 import { formatInterviewPrepError } from "@/lib/interviews/prep-error";
@@ -74,7 +75,7 @@ export async function POST(req: Request) {
     const totalTurns = TURNS_BY_SUB_MODE[subMode];
 
     const paid = await isPaidInterviewTier(supabase, userId);
-    if (!paid) {
+    if (INTERVIEW_WEEKLY_LIMIT_ENABLED && !paid) {
       const hasQuota = await hasFreeWeeklyQuotaRemaining(supabase, userId);
       if (!hasQuota) {
         return NextResponse.json(
@@ -168,7 +169,7 @@ export async function POST(req: Request) {
       console.error("[interviews/start] audio_url update:", audioUrlError);
     }
 
-    if (!paid) {
+    if (INTERVIEW_WEEKLY_LIMIT_ENABLED && !paid) {
       const quota = await getOrCreateWeeklyQuota(supabase, userId);
       const nextUsed = Math.min(
         quota.sessions_used + 1,

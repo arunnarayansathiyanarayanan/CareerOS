@@ -4,6 +4,7 @@ import {
   FREE_TIER_WEEKLY_SESSION_LIMIT,
   getNextMondayResetIso,
   getWeeklySessionsUsed,
+  INTERVIEW_WEEKLY_LIMIT_ENABLED,
 } from "@/lib/interviews/quota";
 
 export type QuotaCheckResult =
@@ -15,7 +16,7 @@ export async function checkInterviewQuota(
   supabase: SupabaseClient,
   isPro: boolean
 ): Promise<QuotaCheckResult> {
-  if (isPro) {
+  if (!INTERVIEW_WEEKLY_LIMIT_ENABLED || isPro) {
     return { allowed: true };
   }
 
