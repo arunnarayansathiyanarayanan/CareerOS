@@ -6,7 +6,11 @@ import { TrpcProvider } from "@/components/providers/trpc-provider";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { UtmCaptureRoot } from "@/components/utm-capture-root";
-import { PRODUCT_NAME, PRODUCT_TAGLINE } from "@/lib/brand";
+import {
+  PRODUCT_NAME,
+  PRODUCT_ORIGIN,
+  PRODUCT_TAGLINE,
+} from "@/lib/brand";
 import { getCareerosPublicHost } from "@/lib/projectsUrls";
 import "./globals.css";
 
@@ -28,8 +32,28 @@ const ibmPlexMono = IBM_Plex_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL(`https://${getCareerosPublicHost()}`),
-  title: PRODUCT_NAME,
+  title: {
+    default: PRODUCT_NAME,
+    template: `%s · ${PRODUCT_NAME}`,
+  },
   description: PRODUCT_TAGLINE,
+  applicationName: PRODUCT_NAME,
+  openGraph: {
+    type: "website",
+    locale: "en_IN",
+    url: PRODUCT_ORIGIN,
+    siteName: PRODUCT_NAME,
+    title: PRODUCT_NAME,
+    description: PRODUCT_TAGLINE,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: PRODUCT_NAME,
+    description: PRODUCT_TAGLINE,
+  },
+  alternates: {
+    canonical: PRODUCT_ORIGIN,
+  },
 };
 
 export default function RootLayout({

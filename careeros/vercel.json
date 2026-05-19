@@ -1,4 +1,12 @@
 {
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "www.aihired.in" }],
+      "destination": "https://aihired.in/:path*",
+      "permanent": true
+    }
+  ],
   "crons": [
     {
       "path": "/api/cron/roadmap-regen",
@@ -14,11 +22,11 @@
     },
     {
       "path": "/api/cron/challenge-lifecycle",
-      "schedule": "0 * * * *"
+      "schedule": "0 12 * * *"
     },
     {
       "path": "/api/cron/peer-review-reminder",
-      "schedule": "0 */6 * * *"
+      "schedule": "0 7 * * *"
     },
     {
       "path": "/api/cron/skill-intelligence?job=scrape",
