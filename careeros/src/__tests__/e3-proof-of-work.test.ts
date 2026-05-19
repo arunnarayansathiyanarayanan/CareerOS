@@ -530,7 +530,7 @@ describe("1. Project CRUD", () => {
     PROJECT_ID = body.project.id;
     PROJECT_SLUG = body.project.slug;
     rememberProjectId(PROJECT_ID);
-    expect(body.public_url).toMatch(/careeros\.com\/p\/test-user-e3\/.+/);
+    expect(body.public_url).toMatch(/aihired\.in\/p\/test-user-e3\/.+/);
   });
 
   wrapIt("crud", "1b validation failures return 422", async () => {

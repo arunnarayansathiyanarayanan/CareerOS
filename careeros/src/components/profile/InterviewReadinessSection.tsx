@@ -17,7 +17,7 @@ export function InterviewReadinessSection({
           Interview readiness
         </h2>
         <p className="text-sm text-zinc-400">
-          Mock interview scores from completed sessions on CareerOS.
+          Mock interview scores from completed sessions on Aihired.
         </p>
       </div>
 

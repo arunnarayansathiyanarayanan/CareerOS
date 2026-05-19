@@ -57,7 +57,7 @@ export default async function InterviewHistoryPage({ searchParams }: PageProps) 
           ← Back to interview home
         </Link>
         <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">
-          CareerOS
+          Aihired
         </p>
         <h1 className="text-2xl font-semibold tracking-tight text-zinc-50">
           Interview history

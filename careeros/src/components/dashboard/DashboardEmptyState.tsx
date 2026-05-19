@@ -41,7 +41,7 @@ export function DashboardEmptyState({ targetRole }: { targetRole: TargetRole }) 
 
   return (
     <div className="mx-auto flex w-full max-w-md flex-col items-center gap-6 px-6 py-20 text-center">
-      <p className="text-sm font-medium text-zinc-500">CareerOS</p>
+      <p className="text-sm font-medium text-zinc-500">Aihired</p>
       <h1 className="text-2xl font-semibold tracking-tight text-zinc-50">
         Your roadmap is almost ready
       </h1>

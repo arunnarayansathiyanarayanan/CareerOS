@@ -168,7 +168,7 @@ export async function GET(_req: NextRequest, ctx: RouteCtx) {
   const roleColor = ROLE_COLORS[roleKey] ?? "#8b5cf6";
   const headline = truncateHeadline(
     profile.headline?.trim() ??
-      `AI-Native ${roleLabel} · CareerOS builder`
+      `AI-Native ${roleLabel} · Aihired builder`
   );
   const displayUrl = publicProfileUrl(profile.username).replace(
     /^https:\/\//,
@@ -377,7 +377,7 @@ export async function GET(_req: NextRequest, ctx: RouteCtx) {
         >
           <div style={{ fontSize: 15, color: "#71717a" }}>{displayUrl}</div>
           <div style={{ fontSize: 16, fontWeight: 600, color: "#ffffff" }}>
-            CareerOS
+            Aihired
           </div>
         </div>
       </div>

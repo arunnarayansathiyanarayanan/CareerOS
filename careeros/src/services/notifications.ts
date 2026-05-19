@@ -1,10 +1,10 @@
 import { Resend } from "@resend/node";
 
+import { getAppOrigin } from "@/lib/brand";
+
 /** `@resend/node` is an npm alias for the official Resend Node SDK (`resend`). */
 
-const APP_ORIGIN = (
-  process.env.NEXT_PUBLIC_APP_URL ?? "https://careeros.com"
-).replace(/\/$/, "");
+const APP_ORIGIN = getAppOrigin();
 
 export type WelcomeEmailUser = {
   email: string;
@@ -56,7 +56,7 @@ function buildWelcomeHtml(
   const psBlock =
     profileHref !== null
       ? `<p style="margin-top:1.5rem;font-size:0.9rem;color:#555;">P.S. Your public profile: <a href="${escapeHtml(profileHref)}">${escapeHtml(profileHref)}</a></p>`
-      : `<p style="margin-top:1.5rem;font-size:0.9rem;color:#555;">P.S. Add a username in CareerOS to get a shareable public profile link.</p>`;
+      : `<p style="margin-top:1.5rem;font-size:0.9rem;color:#555;">P.S. Add a username in Aihired to get a shareable public profile link.</p>`;
 
   return `
 <p>Hi ${greetingName},</p>
@@ -65,7 +65,7 @@ function buildWelcomeHtml(
 <p>It breaks down phased milestones, learning focus, and concrete next actions so you always know what to work on next.</p>
 <p><strong><a href="${rLink}">Start your first concept today →</a></strong></p>
 ${psBlock}
-<p>— CareerOS</p>
+<p>— Aihired</p>
 `.trim();
 }
 

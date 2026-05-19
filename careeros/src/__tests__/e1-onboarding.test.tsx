@@ -313,7 +313,7 @@ describe("E1 onboarding", () => {
   it("welcome email send swallows Resend failures", async () => {
     mockResendSend.mockRejectedValueOnce(new Error("resend down"));
     process.env.RESEND_API_KEY = "k";
-    process.env.RESEND_FROM_EMAIL = "CareerOS <onboarding@example.com>";
+    process.env.RESEND_FROM_EMAIL = "Aihired <onboarding@example.com>";
     await expect(
       sendWelcomeEmail(
         {

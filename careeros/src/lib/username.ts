@@ -20,6 +20,7 @@ export const RESERVED_USERNAMES = new Set([
   "null",
   "undefined",
   "careeros",
+  "aihired",
   "support",
   "terms",
   "privacy",

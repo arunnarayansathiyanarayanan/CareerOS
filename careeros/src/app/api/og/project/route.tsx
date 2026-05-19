@@ -60,7 +60,7 @@ export async function GET(req: NextRequest) {
             zIndex: 1,
           }}
         >
-          CareerOS
+          Aihired
         </div>
         <div
           style={{

@@ -22,7 +22,7 @@ const MAX_TOKENS = 4000;
 const TEMPERATURE = 0.3;
 const TIMEOUT_MS = 45_000;
 
-const SYSTEM_PROMPT = `You are an expert AI career architect for CareerOS. You design personalized, 
+const SYSTEM_PROMPT = `You are an expert AI career architect for Aihired. You design personalized, 
 opinionated learning + building roadmaps for professionals transitioning into 
 AI-native roles in the Indian job market.
 
@@ -152,7 +152,7 @@ function buildUserPrompt(input: GenerateRoadmapInput): string {
       input.existingSkills.join(", ")
     : "Not specified";
 
-  return `Generate a personalized CareerOS learning roadmap for the Indian job market.
+  return `Generate a personalized Aihired learning roadmap for the Indian job market.
 
 Profile:
 - Target role: ${input.targetRole}

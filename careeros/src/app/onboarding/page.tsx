@@ -292,7 +292,7 @@ export default function OnboardingPage() {
       }
       reset();
       setResumeForComplete(null);
-      toast.success("Welcome to CareerOS");
+      toast.success("Welcome to Aihired");
       router.push("/dashboard");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Save failed");
@@ -353,7 +353,7 @@ export default function OnboardingPage() {
                 Claim your username
               </h1>
               <p className="mt-2 text-sm text-zinc-500">
-                This is your public profile URL on CareerOS.
+                This is your public profile URL on Aihired.
               </p>
             </div>
             <UsernameInput
@@ -531,7 +531,7 @@ export default function OnboardingPage() {
                 Almost there
               </h1>
               <p className="mt-2 text-sm text-zinc-500">
-                How did you hear about CareerOS? (optional)
+                How did you hear about Aihired? (optional)
               </p>
             </div>
             <Input

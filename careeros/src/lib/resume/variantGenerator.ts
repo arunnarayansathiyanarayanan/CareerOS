@@ -100,7 +100,7 @@ function buildVariantUserPrompt(
   return `Target role: ${input.targetRole}
 Positioning angle: ${label} — ${description}
 Job description: ${input.jobDescription?.trim() || "Not provided"}
-CareerOS profile URL: ${input.careerOsProfileUrl}
+Aihired profile URL: ${input.careerOsProfileUrl}
 Featured project URLs: ${featuredProjects || "None provided"}
 
 Source resume (JSON):
@@ -111,7 +111,7 @@ Rewrite this resume for the target role using the positioning angle above. Use O
 Return ONLY valid JSON matching this shape exactly:
 ${GENERATED_VARIANT_JSON_SCHEMA}
 
-Set careerOsLink to the CareerOS profile URL and featuredProjects to the featured project URLs listed above.`;
+Set careerOsLink to the Aihired profile URL and featuredProjects to the featured project URLs listed above.`;
 }
 
 async function callOpenAIForAngle(

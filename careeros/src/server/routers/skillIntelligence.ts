@@ -491,7 +491,7 @@ export const skillIntelligenceRouter = router({
           {
             role: "system",
             content:
-              "You are a CareerOS AI Career Advisor. Answer based on India AI job market data. Be direct, data-grounded, and specific. Cite skill names and numbers.",
+              "You are an Aihired AI Career Advisor. Answer based on India AI job market data. Be direct, data-grounded, and specific. Cite skill names and numbers.",
           },
           {
             role: "user",

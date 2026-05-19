@@ -6,6 +6,7 @@ import { TrpcProvider } from "@/components/providers/trpc-provider";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { UtmCaptureRoot } from "@/components/utm-capture-root";
+import { PRODUCT_NAME, PRODUCT_TAGLINE } from "@/lib/brand";
 import { getCareerosPublicHost } from "@/lib/projectsUrls";
 import "./globals.css";
 
@@ -27,8 +28,8 @@ const ibmPlexMono = IBM_Plex_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL(`https://${getCareerosPublicHost()}`),
-  title: "CareerOS",
-  description: "Career operating system",
+  title: PRODUCT_NAME,
+  description: PRODUCT_TAGLINE,
 };
 
 export default function RootLayout({

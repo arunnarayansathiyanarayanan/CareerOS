@@ -15,7 +15,7 @@
 
    - Clerk: `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY` (use **production** keys for public users)
    - Supabase: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `DATABASE_URL`
-   - `OPENAI_API_KEY`, `NEXT_PUBLIC_APP_URL` (your `https://….vercel.app` URL)
+   - `OPENAI_API_KEY`, `NEXT_PUBLIC_APP_URL` (`https://aihired.in` once DNS is pointed at Vercel)
    - R2: `R2_*`, `INTERVIEW_AUDIO_STORAGE=r2`
    - `CRON_SECRET` — generate: `openssl rand -hex 32` (Vercel Cron sends this as `Authorization: Bearer …`)
    - Upstash (community/streaks): `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`
@@ -41,7 +41,7 @@ cd careeros
 npx vercel --prod
 ```
 
-After first deploy, set `NEXT_PUBLIC_APP_URL` to the production URL and redeploy.
+After DNS for `aihired.in` is live, set `NEXT_PUBLIC_APP_URL=https://aihired.in` and redeploy.
 
 ## Sync env from local (optional)
 

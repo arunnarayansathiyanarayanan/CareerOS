@@ -1272,7 +1272,7 @@ export function ProjectBuilder() {
       <section className={cardClass()}>
         {sectionTitle("Tech stack")}
         <p className="mb-4 text-sm text-zinc-500">
-          Select skills from the CareerOS ontology; they power tagging and validation.
+          Select skills from the Aihired ontology; they power tagging and validation.
         </p>
         <Controller
           name="ai_stack"

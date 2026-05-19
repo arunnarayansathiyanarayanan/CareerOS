@@ -5,14 +5,13 @@ import Link from "next/link";
 import { useMemo, useId } from "react";
 
 import { Button } from "@/components/ui/button";
+import { getAppOrigin } from "@/lib/brand";
 import type {
   RoadmapContent,
   RoadmapItem,
 } from "@/lib/legacyRoadmapJson";
 
-const APP_ORIGIN = (
-  process.env.NEXT_PUBLIC_APP_URL ?? "https://careeros.com"
-).replace(/\/$/, "");
+const APP_ORIGIN = getAppOrigin();
 
 function flattenItems(content: RoadmapContent): RoadmapItem[] {
   return content.phases.flatMap((p) => p.items);
@@ -273,7 +272,7 @@ export function StepRoadmapReady({
   const actions = firstThreeActions(content);
   const profileUrl = buildCareerosProfileUrl(username);
 
-  const shareText = `Just set up my AI ${roleLabel} roadmap on @CareerOS. Starting my path to AI-native. 🚀 ${profileUrl}`;
+  const shareText = `Just set up my AI ${roleLabel} roadmap on @Aihired. Starting my path to AI-native. 🚀 ${profileUrl}`;
   const linkedInUrl = buildLinkedInShareUrl(shareText);
 
   const openLinkedInShare = () => {
@@ -316,7 +315,7 @@ export function StepRoadmapReady({
                   </>
                 ) : (
                   <p className="mt-1 text-sm text-zinc-500">
-                    More in your full roadmap inside CareerOS.
+                    More in your full roadmap inside Aihired.
                   </p>
                 )}
               </div>
@@ -351,7 +350,7 @@ export function StepRoadmapReady({
             asChild
             className="h-11 w-full bg-[#E5FF47] text-sm font-semibold text-[#111] hover:bg-[#d8f542]"
           >
-            <Link href="/dashboard">Enter CareerOS →</Link>
+            <Link href="/dashboard">Enter Aihired →</Link>
           </Button>
           <Button
             type="button"

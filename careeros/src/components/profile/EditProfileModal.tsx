@@ -456,7 +456,7 @@ export function EditProfileModal({ profile }: { profile: ProfilePublicDTO }) {
         <DialogHeader>
           <DialogTitle>Edit profile</DialogTitle>
           <DialogDescription className="text-zinc-400">
-            Update how recruiters see you on CareerOS.
+            Update how recruiters see you on Aihired.
           </DialogDescription>
           {isDirty ? (
             <p

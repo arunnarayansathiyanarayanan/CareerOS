@@ -30,7 +30,7 @@ export function AppHeader({
           href="/dashboard"
           className="text-sm font-semibold tracking-tight text-zinc-200 hover:text-white"
         >
-          CareerOS
+          Aihired
         </Link>
         <nav className="flex flex-wrap items-center gap-4 sm:gap-6" aria-label="Main">
           <Link

@@ -4,7 +4,7 @@ import type { DrizzleDB } from "@/db/types";
 import type { User } from "@/db/schema/users";
 import { getClerkAppSession } from "@/lib/auth";
 
-/** Request context for CareerOS tRPC procedures (DB + request headers). */
+/** Request context for Aihired tRPC procedures (DB + request headers). */
 export type TRPCContext = {
   db: DrizzleDB;
   headers: Headers | null;

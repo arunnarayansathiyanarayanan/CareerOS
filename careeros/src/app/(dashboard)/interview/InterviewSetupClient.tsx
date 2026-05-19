@@ -16,6 +16,7 @@ import {
   type SubMode,
   type Track,
 } from "@/lib/ai/question-bank";
+import { SUPPORT_EMAIL } from "@/lib/brand";
 import type { InterviewSetupProject } from "@/lib/getInterviewSetupForClerk";
 import { INTERVIEW_WEEKLY_LIMIT_ENABLED } from "@/lib/interviews/quota";
 import type { ReadinessScore, StartInterviewResponse } from "@/lib/interviews/types";
@@ -118,7 +119,7 @@ export function InterviewSetupClient({
     <main className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6 sm:py-10">
       <header className="mb-8 space-y-2">
         <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">
-          CareerOS
+          Aihired
         </p>
         <h1 className="text-2xl font-semibold tracking-tight text-zinc-50">
           AI mock interview
@@ -196,7 +197,7 @@ export function InterviewSetupClient({
                 asChild
                 className="h-11 border-zinc-700 text-zinc-200 hover:bg-zinc-800"
               >
-                <Link href="mailto:support@careeros.app?subject=Upgrade%20to%20Pro">
+                <Link href={`mailto:${SUPPORT_EMAIL}?subject=Upgrade%20to%20Pro`}>
                   Upgrade to Pro
                 </Link>
               </Button>

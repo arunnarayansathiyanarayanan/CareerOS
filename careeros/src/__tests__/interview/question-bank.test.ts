@@ -8,7 +8,7 @@ import {
 
 const sampleProjects: InterviewProject[] = [
   {
-    name: "CareerOS Portfolio",
+    name: "Aihired Portfolio",
     stack: ["Next.js", "Supabase"],
     outcome: "Shipped public profiles",
     description: "Proof-of-work builder for AI-native roles",
@@ -37,7 +37,7 @@ describe("buildSystemPrompt", () => {
       8
     );
 
-    expect(prompt).toContain("CareerOS Portfolio");
+    expect(prompt).toContain("Aihired Portfolio");
     expect(prompt).toContain("turn 2 of 8");
     expect(prompt).not.toContain("undefined");
     expect(prompt).not.toMatch(/\$\{[^}]+\}/);

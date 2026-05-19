@@ -1,3 +1,5 @@
+import { PRODUCT_DOMAIN } from "@/lib/brand";
+
 /** Public product hostname for share/embed links (override via env in staging). */
 export function getCareerosPublicHost(): string {
   const raw = process.env.NEXT_PUBLIC_APP_URL?.trim();
@@ -6,10 +8,12 @@ export function getCareerosPublicHost(): string {
       const u = new URL(raw.startsWith("http") ? raw : `https://${raw}`);
       return u.host;
     } catch {
-      return raw.replace(/^https?:\/\//, "").replace(/\/$/, "") || "careeros.com";
+      return (
+        raw.replace(/^https?:\/\//, "").replace(/\/$/, "") || PRODUCT_DOMAIN
+      );
     }
   }
-  return "careeros.com";
+  return PRODUCT_DOMAIN;
 }
 
 export function projectPublicPath(username: string, slug: string): string {
@@ -30,7 +34,7 @@ export function recruiterShareUrl(token: string): string {
   return `https://${host}${recruiterSharePath(token)}`;
 }
 
-/** Display form without scheme, e.g. `careeros.com/p/user/slug`. */
+/** Display form without scheme, e.g. `aihired.in/p/user/slug`. */
 export function projectPublicDisplayUrl(username: string, slug: string): string {
   return `${getCareerosPublicHost()}${projectPublicPath(username, slug)}`;
 }

@@ -74,8 +74,8 @@ export async function generateMetadata({
       profile.targetRole as Profile["targetRole"]
     ] ?? profile.targetRole;
   const headline =
-    profile.headline?.trim() ?? `${profile.displayName} on CareerOS`;
-  const title = `${profile.displayName} — AI-Native ${roleLabel} | CareerOS`;
+    profile.headline?.trim() ?? `${profile.displayName} on Aihired`;
+  const title = `${profile.displayName} — AI-Native ${roleLabel} | Aihired`;
   const description = `${headline} · ${profile.streakDays}-day building streak · ${profile.roadmapProgressPct}% to AI-Native Ready`;
   const canonical = publicProfileUrl(profile.username);
 
@@ -110,7 +110,7 @@ function buildActivityItems(profile: ProfilePublicDTO): ProfileActivityItem[] {
     {
       id: "streak",
       title: `${profile.streakDays}-day building streak`,
-      subtitle: "Consistency tracked on CareerOS",
+      subtitle: "Consistency tracked on Aihired",
     },
     {
       id: "roadmap",

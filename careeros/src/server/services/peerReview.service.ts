@@ -256,7 +256,7 @@ export async function getAIReviewSuggestions(
         {
           role: "system",
           content:
-            'You are a senior AI product reviewer at CareerOS. Evaluate projects for AI-native professional portfolios. Return ONLY valid JSON: { "strengths": [string, string, string], "improvements": [string, string, string] }',
+            'You are a senior AI product reviewer at Aihired. Evaluate projects for AI-native professional portfolios. Return ONLY valid JSON: { "strengths": [string, string, string], "improvements": [string, string, string] }',
         },
         {
           role: "user",

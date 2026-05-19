@@ -34,7 +34,7 @@ export default function OnboardingLayout({
 
       <header className="flex shrink-0 items-start justify-between gap-4 px-6 pt-6 sm:px-10">
         <span className="text-sm font-semibold tracking-tight text-zinc-300">
-          CareerOS
+          Aihired
         </span>
         <span className="text-sm tabular-nums text-zinc-500">
           {step} of {TOTAL_STEPS}

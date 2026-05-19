@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Input } from "@/components/ui/input";
 import { useDebounce } from "@/hooks/useDebounce";
+import { getCareerosPublicHost } from "@/lib/projectsUrls";
 import { cn } from "@/lib/utils";
 import {
   buildUsernameSuggestions,
@@ -193,7 +194,7 @@ export function UsernameInput({
     <div className={cn("flex flex-col gap-3", className)}>
       <div className="relative">
         <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-sm text-zinc-500">
-          careeros.com/u/
+          {`${getCareerosPublicHost()}/u/`}
         </span>
         <Input
           value={value}

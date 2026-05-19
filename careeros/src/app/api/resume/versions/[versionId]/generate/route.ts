@@ -1,5 +1,6 @@
 import { and, desc, eq, inArray, isNotNull } from "drizzle-orm";
 
+import { PRODUCT_DOMAIN } from "@/lib/brand";
 import { getDb } from "@/db";
 import { profiles } from "@/db/schema/profile";
 import { projects } from "@/db/schema/projects";
@@ -67,7 +68,7 @@ export async function POST(
 
     const careerOsProfileUrl = profileRow?.username
       ? publicProfileUrl(profileRow.username)
-      : `https://${process.env.NEXT_PUBLIC_APP_URL?.replace(/^https?:\/\//, "").replace(/\/$/, "") || "careeros.com"}`;
+      : `https://${process.env.NEXT_PUBLIC_APP_URL?.replace(/^https?:\/\//, "").replace(/\/$/, "") || PRODUCT_DOMAIN}`;
 
     const topProjects = await db
       .select({

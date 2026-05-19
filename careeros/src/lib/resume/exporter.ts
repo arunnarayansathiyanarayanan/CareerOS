@@ -216,7 +216,7 @@ function buildContactParagraph(variant: GeneratedVariantContent): Paragraph {
   addLink(contact.linkedin);
   addLink(contact.github);
   if (careerOsLink?.trim()) {
-    addLink(careerOsLink.trim(), "CareerOS Profile");
+    addLink(careerOsLink.trim(), "Aihired Profile");
   }
 
   return new Paragraph({
@@ -318,7 +318,7 @@ export async function exportDocx(
   }
 
   if (variant.careerOsLink?.trim()) {
-    children.push(sectionHeaderParagraph("CAREEROS LINK"));
+    children.push(sectionHeaderParagraph("AIHIRED LINK"));
     children.push(
       isHttpUrl(variant.careerOsLink)
         ? hyperlinkParagraph(variant.careerOsLink)
@@ -330,7 +330,7 @@ export async function exportDocx(
     variant.featuredProjects?.filter((p) => p.trim()).join(" | ") ?? "";
 
   children.push(
-    plainParagraph(`CareerOS Profile: ${variant.careerOsLink}`)
+    plainParagraph(`Aihired Profile: ${variant.careerOsLink}`)
   );
   if (featured) {
     children.push(plainParagraph(`Featured Projects: ${featured}`));
@@ -654,7 +654,7 @@ function buildResumePdfDocument(
     bodyChildren.push(
       React.createElement(PdfSectionHeader, {
         key: "h-careeros",
-        title: "CAREEROS LINK",
+        title: "AIHIRED LINK",
       }),
       React.createElement(PdfBodyText, {
         key: "careeros-link",
@@ -670,7 +670,7 @@ function buildResumePdfDocument(
       React.createElement(
         Text,
         { style: pdfStyles.footerLine },
-        `CareerOS Profile: ${variant.careerOsLink}`
+        `Aihired Profile: ${variant.careerOsLink}`
       ),
       featured
         ? React.createElement(

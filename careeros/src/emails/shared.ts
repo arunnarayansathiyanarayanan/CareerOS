@@ -1,6 +1,6 @@
-export const APP_ORIGIN = (
-  process.env.NEXT_PUBLIC_APP_URL ?? "https://careeros.com"
-).replace(/\/$/, "");
+import { getAppOrigin } from "@/lib/brand";
+
+export const APP_ORIGIN = getAppOrigin();
 
 export function escapeHtml(s: string): string {
   return s

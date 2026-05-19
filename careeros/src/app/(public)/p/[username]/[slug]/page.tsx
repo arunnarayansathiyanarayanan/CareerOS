@@ -60,7 +60,7 @@ export async function generateMetadata({
   const q = `username=${encodeURIComponent(username)}&slug=${encodeURIComponent(slug)}`;
 
   return {
-    title: `${project.title} by ${username} | CareerOS`,
+    title: `${project.title} by ${username} | Aihired`,
     description: project.oneLiner,
     openGraph: {
       images: [
@@ -226,14 +226,14 @@ export default async function PublicProjectPage({ params }: PageProps) {
       <aside className="fixed inset-x-0 bottom-0 z-30 border-t border-zinc-800 bg-zinc-950/95 px-4 py-4 backdrop-blur-md md:px-6">
         <div className="mx-auto flex max-w-3xl flex-col items-center justify-between gap-3 sm:flex-row">
           <p className="text-center text-sm text-zinc-400 sm:text-left">
-            Build your AI portfolio on CareerOS — ship proof-of-work employers
+            Build your AI portfolio on Aihired — ship proof-of-work employers
             trust.
           </p>
           <Link
             href={`${marketingBase}/projects/new`}
             className="inline-flex shrink-0 items-center justify-center rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-indigo-500"
           >
-            Build your AI portfolio → careeros.com
+            Build your AI portfolio → {getCareerosPublicHost()}
           </Link>
         </div>
       </aside>

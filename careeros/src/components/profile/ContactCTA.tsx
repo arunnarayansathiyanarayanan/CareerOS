@@ -38,7 +38,7 @@ export function ContactCTA({
       <p className="mt-2 max-w-xl text-sm text-zinc-400">
         {first
           ? "Open a pinned project for outcomes, stack, and artifacts."
-          : "More projects will appear here as they publish to CareerOS."}
+          : "More projects will appear here as they publish to Aihired."}
       </p>
       <div className="mt-5 flex flex-wrap gap-2">
         {first ? (

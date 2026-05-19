@@ -192,7 +192,7 @@ Scoring guidance:
 - communication: confidence, listening, concision under pressure`;
 }
 
-const FEEDBACK_SYSTEM_PROMPT = `You are an expert AI interview coach for CareerOS. You evaluate mock interview transcripts for professionals targeting AI-native roles in the Indian job market. Be honest, specific, and constructive. Output only valid JSON matching the requested schema.`;
+const FEEDBACK_SYSTEM_PROMPT = `You are an expert AI interview coach for Aihired. You evaluate mock interview transcripts for professionals targeting AI-native roles in the Indian job market. Be honest, specific, and constructive. Output only valid JSON matching the requested schema.`;
 
 /** Parses model JSON into {@link ParsedFeedback}. Exported for unit tests. */
 export function parseFeedbackResponse(rawJson: string): ParsedFeedback {

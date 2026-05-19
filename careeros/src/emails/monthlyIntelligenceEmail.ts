@@ -56,7 +56,7 @@ export function renderMonthlyIntelligenceEmailHtml(
 
   return `
 <div style="font-family:system-ui,-apple-system,Segoe UI,sans-serif;line-height:1.55;color:#18181b;max-width:560px;">
-  <p style="font-size:0.75rem;letter-spacing:0.08em;text-transform:uppercase;color:#6366f1;margin:0 0 1rem;">CareerOS · Skill intelligence</p>
+  <p style="font-size:0.75rem;letter-spacing:0.08em;text-transform:uppercase;color:#6366f1;margin:0 0 1rem;">Aihired · Skill intelligence</p>
   <p>Hi ${greetingName},</p>
   <p>Your monthly AI career intelligence for <strong>${roleLabel}</strong> roles in <strong>${cityLabel}</strong> is ready.</p>
 
@@ -78,8 +78,8 @@ export function renderMonthlyIntelligenceEmailHtml(
     <a href="${skillsUrl}" style="display:inline-block;padding:0.65rem 1.25rem;border-radius:8px;background:#6366f1;color:#fff;text-decoration:none;font-weight:600;">View full intelligence dashboard →</a>
   </p>
   <p style="font-size:0.85rem;color:#71717a;">Open your dashboard: <a href="${skillsUrl}" style="color:#6366f1;">${escapeHtml(skillsPageUrl().replace(/^https?:\/\//, ""))}</a></p>
-  <p style="margin-top:1.5rem;font-size:0.85rem;color:#a1a1aa;">You receive this because you opted in to intelligence emails on CareerOS Pro. Manage preferences in account settings.</p>
-  <p style="margin-top:0.5rem;">— CareerOS</p>
+  <p style="margin-top:1.5rem;font-size:0.85rem;color:#a1a1aa;">You receive this because you opted in to intelligence emails on Aihired Pro. Manage preferences in account settings.</p>
+  <p style="margin-top:0.5rem;">— Aihired</p>
 </div>
 `.trim();
 }

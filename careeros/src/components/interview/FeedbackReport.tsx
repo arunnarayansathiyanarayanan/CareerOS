@@ -9,6 +9,7 @@ import { MomentCard } from "@/components/interview/MomentCard";
 import { RubricScore } from "@/components/interview/RubricScore";
 import { Button } from "@/components/ui/button";
 import type { ParsedFeedback } from "@/lib/ai/feedback-ai";
+import { PRODUCT_DOMAIN } from "@/lib/brand";
 import { getSubModeLabel, getTrackLabel } from "@/lib/interviews/labels";
 import type { InterviewSession } from "@/lib/interviews/types";
 import { cn } from "@/lib/utils";
@@ -46,7 +47,7 @@ function formatDuration(seconds: number | null): string {
 }
 
 function buildLinkedInShareText(score: number, subModeLabel: string): string {
-  return `Just completed an AI PM interview on CareerOS and scored ${score.toFixed(1)}/10 on ${subModeLabel}. Track your AI career at careeros.com`;
+  return `Just completed an AI PM interview on Aihired and scored ${score.toFixed(1)}/10 on ${subModeLabel}. Track your AI career at ${PRODUCT_DOMAIN}`;
 }
 
 export function FeedbackReport({
