@@ -21,13 +21,11 @@ function chunk<T>(items: T[], size: number): T[][] {
   return batches;
 }
 
-// Vercel cron: "0 */6 * * *"
-export async function POST(req: Request) {
-  try {
-    guardCron(req);
-    const cutoff = new Date(Date.now() - 36 * 60 * 60 * 1000);
+async function runPeerReviewReminder(req: Request) {
+  guardCron(req);
+  const cutoff = new Date(Date.now() - 36 * 60 * 60 * 1000);
 
-    const staleReviews = await db
+  const staleReviews = await db
       .select({
         ownerId: projects.userId,
         projectId: peerReviews.projectId,
@@ -42,10 +40,10 @@ export async function POST(req: Request) {
         ),
       );
 
-    const seenOwners = new Set<string>();
-    const rows: NewNotification[] = [];
+  const seenOwners = new Set<string>();
+  const rows: NewNotification[] = [];
 
-    for (const review of staleReviews) {
+  for (const review of staleReviews) {
       const ownerId = review.ownerId;
       if (seenOwners.has(ownerId)) continue;
       seenOwners.add(ownerId);
@@ -57,13 +55,28 @@ export async function POST(req: Request) {
           reviewId: review.reviewId,
         },
       });
-    }
+  }
 
-    for (const batch of chunk(rows, NOTIFY_CHUNK_SIZE)) {
-      await db.insert(notifications).values(batch);
-    }
+  for (const batch of chunk(rows, NOTIFY_CHUNK_SIZE)) {
+    await db.insert(notifications).values(batch);
+  }
 
-    return Response.json({ notified: rows.length });
+  return Response.json({ notified: rows.length });
+}
+
+// Vercel cron: "0 */6 * * *"
+export async function GET(req: Request) {
+  try {
+    return await runPeerReviewReminder(req);
+  } catch (e) {
+    if (e instanceof Response) return e;
+    return Response.json({ error: "Internal Server Error" }, { status: 500 });
+  }
+}
+
+export async function POST(req: Request) {
+  try {
+    return await runPeerReviewReminder(req);
   } catch (e) {
     if (e instanceof Response) return e;
     return Response.json({ error: "Internal Server Error" }, { status: 500 });

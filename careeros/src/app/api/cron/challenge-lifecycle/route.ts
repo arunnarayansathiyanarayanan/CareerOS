@@ -45,13 +45,11 @@ async function notifyAllUsersOfActiveChallenges(
   }
 }
 
-// Vercel cron: "0 * * * *"
-export async function POST(req: Request) {
-  try {
-    guardCron(req);
-    const now = new Date();
+async function runChallengeLifecycle(req: Request) {
+  guardCron(req);
+  const now = new Date();
 
-    const upcomingToActive = await db
+  const upcomingToActive = await db
       .update(buildChallenges)
       .set({ status: "ACTIVE" })
       .where(
@@ -73,7 +71,7 @@ export async function POST(req: Request) {
       )
       .returning();
 
-    const votingToClosed = await db
+  const votingToClosed = await db
       .update(buildChallenges)
       .set({ status: "CLOSED" })
       .where(
@@ -84,14 +82,27 @@ export async function POST(req: Request) {
       )
       .returning();
 
-    await notifyAllUsersOfActiveChallenges(upcomingToActive);
+  await notifyAllUsersOfActiveChallenges(upcomingToActive);
 
-    const transitioned =
-      upcomingToActive.length +
-      activeToVoting.length +
-      votingToClosed.length;
+  const transitioned =
+    upcomingToActive.length + activeToVoting.length + votingToClosed.length;
 
-    return Response.json({ transitioned });
+  return Response.json({ transitioned });
+}
+
+// Vercel cron: "0 * * * *"
+export async function GET(req: Request) {
+  try {
+    return await runChallengeLifecycle(req);
+  } catch (e) {
+    if (e instanceof Response) return e;
+    return Response.json({ error: "Internal Server Error" }, { status: 500 });
+  }
+}
+
+export async function POST(req: Request) {
+  try {
+    return await runChallengeLifecycle(req);
   } catch (e) {
     if (e instanceof Response) return e;
     return Response.json({ error: "Internal Server Error" }, { status: 500 });

@@ -5,6 +5,7 @@ import {
   getNextMondayResetIso,
   getWeeklySessionsUsed,
   INTERVIEW_WEEKLY_LIMIT_ENABLED,
+  type WeeklyQuotaRow,
 } from "@/lib/interviews/quota";
 
 export type QuotaCheckResult =

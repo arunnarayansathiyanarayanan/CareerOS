@@ -92,7 +92,7 @@ export function AppHeader({
           longestStreak={longestStreak}
           size="sm"
         />
-        <UserButton afterSignOutUrl="/sign-in" />
+        <UserButton />
       </div>
     </header>
   );

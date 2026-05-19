@@ -548,7 +548,7 @@ export const profileRouter = router({
         await db.insert(profileViews).values({
           profileId: prof.id,
           viewerId,
-          source: input.source,
+          source: input.source as ViewSource,
           referrerUrl: input.referrerUrl ?? null,
           ipHash,
         });

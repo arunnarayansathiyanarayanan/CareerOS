@@ -3,19 +3,13 @@ import { NextResponse } from "next/server";
 
 import { getDb } from "@/db/client";
 import { roadmaps } from "@/db/schema/roadmap";
+import { guardCron } from "@/lib/cronGuard";
 import { regenerateRoadmap } from "@/services/regenerateRoadmap";
 
 export const runtime = "nodejs";
 
 const BATCH_SIZE = 10;
 const REGEN_INTERVAL_MS = 7 * 24 * 60 * 60 * 1000;
-
-function isAuthorized(request: Request): boolean {
-  const cronSecret = process.env.CRON_SECRET;
-  if (!cronSecret) return false;
-  const authHeader = request.headers.get("authorization");
-  return authHeader === `Bearer ${cronSecret}`;
-}
 
 function chunk<T>(items: T[], size: number): T[][] {
   const batches: T[][] = [];
@@ -26,7 +20,13 @@ function chunk<T>(items: T[], size: number): T[][] {
 }
 
 export async function GET(request: Request) {
-  if (!isAuthorized(request)) {
+  try {
+    guardCron(request);
+  } catch (e) {
+    if (e instanceof Response) {
+      const body = await e.json().catch(() => ({ error: "Unauthorized" }));
+      return NextResponse.json(body, { status: e.status });
+    }
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
