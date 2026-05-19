@@ -1,4 +1,7 @@
 import { BaseScraper } from "./base";
+import { AdzunaScraper } from "./adzuna";
+import { GoogleJobsScraper } from "./googleJobs";
+import { LinkedInScraper } from "./linkedin";
 import { NaukriScraper } from "./naukri";
 
 export {
@@ -8,6 +11,9 @@ export {
   type RawJobPosting,
 } from "./base";
 export { NaukriScraper } from "./naukri";
+export { AdzunaScraper } from "./adzuna";
+export { GoogleJobsScraper } from "./googleJobs";
+export { LinkedInScraper } from "./linkedin";
 
 export type ScraperRunResult = {
   source: string;
@@ -24,11 +30,40 @@ function scraperLabel(scraper: BaseScraper): string {
   return scraper.source;
 }
 
+function buildScrapers(): BaseScraper[] {
+  const scrapers: BaseScraper[] = [];
+
+  if (process.env.SKILL_SCRAPER_NAUKRI !== "false") {
+    scrapers.push(new NaukriScraper());
+  }
+
+  if (
+    process.env.ADZUNA_APP_ID?.trim() &&
+    process.env.ADZUNA_APP_KEY?.trim()
+  ) {
+    scrapers.push(new AdzunaScraper());
+  }
+
+  if (process.env.RAPIDAPI_KEY?.trim()) {
+    scrapers.push(new GoogleJobsScraper());
+    scrapers.push(new LinkedInScraper());
+  }
+
+  return scrapers;
+}
+
 export async function runAllScrapers(): Promise<{
   fulfilled: ScraperRunResult[];
   rejected: ScraperRunFailure[];
 }> {
-  const scrapers: BaseScraper[] = [new NaukriScraper()];
+  const scrapers = buildScrapers();
+
+  if (scrapers.length === 0) {
+    throw new Error(
+      "No scrapers configured. Set ADZUNA_APP_ID/ADZUNA_APP_KEY and/or RAPIDAPI_KEY, " +
+        "or enable Naukri with SKILL_SCRAPER_NAUKRI=true (Naukri often returns 0 without browser automation).",
+    );
+  }
 
   const settled = await Promise.allSettled(
     scrapers.map(async (scraper) => {

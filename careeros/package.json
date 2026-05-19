@@ -19,7 +19,8 @@
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "db:ping": "node --env-file=.env.local scripts/check-db.mjs",
-    "db:seed": "npx tsx --env-file=.env.local scripts/seed.ts"
+    "db:seed": "npx tsx --env-file=.env.local scripts/seed.ts",
+    "skill:bootstrap": "npx tsx --env-file=.env.local scripts/bootstrap-skill-intelligence.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1047.0",

@@ -77,6 +77,23 @@ function SkillsDashboardBody({ isSignedIn }: SkillsPageClientProps) {
 
       <SkillDashboardFilters />
 
+      {!dashboardQuery.isLoading && !computedAt ? (
+        <section className="rounded-2xl border border-amber-500/30 bg-amber-500/10 px-5 py-4 text-sm text-amber-100">
+          <p className="font-medium">No market data yet</p>
+          <p className="mt-1 text-amber-200/90">
+            The dashboard reads from aggregated job snapshots. Run{" "}
+            <code className="rounded bg-black/30 px-1.5 py-0.5 font-mono text-xs">
+              npm run skill:bootstrap
+            </code>{" "}
+            after adding{" "}
+            <code className="font-mono text-xs">ADZUNA_APP_ID</code> /{" "}
+            <code className="font-mono text-xs">RAPIDAPI_KEY</code> to{" "}
+            <code className="font-mono text-xs">.env.local</code>. Naukri HTML
+            scraping no longer returns listings (reCAPTCHA / JS shell).
+          </p>
+        </section>
+      ) : null}
+
       <div className="grid gap-6 xl:grid-cols-2">
         <SkillRankTable
           title="Top skills by volume"

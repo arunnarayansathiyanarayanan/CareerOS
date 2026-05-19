@@ -30,6 +30,7 @@ export const skillOntologyCategoryEnum = pgEnum("skill_ontology_category", [
 export const jobPostingSourceEnum = pgEnum("job_posting_source", [
   "linkedin",
   "naukri",
+  "google",
   "foundit",
   "wellfound",
 ]);

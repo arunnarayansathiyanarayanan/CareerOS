@@ -361,6 +361,13 @@ export class NaukriScraper extends BaseScraper {
 
     const postings = [...byId.values()];
 
+    if (postings.length === 0) {
+      console.warn(
+        "[naukri] 0 jobs parsed — Naukri now serves a JS shell and blocks jobapi with reCAPTCHA. " +
+          "Set ADZUNA_APP_ID/ADZUNA_APP_KEY and/or RAPIDAPI_KEY for working scrapers.",
+      );
+    }
+
     await Promise.all(
       postings.map(async (p) => {
         if (!p.descriptionText) return;
