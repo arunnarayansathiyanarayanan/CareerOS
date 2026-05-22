@@ -142,4 +142,26 @@ describe("Resume upload validation (authenticated)", () => {
     const body = (await res.json()) as { code: string };
     expect(body.code).toBe("FILE_TOO_LARGE");
   });
+
+  it("accepts PDF when MIME is empty but extension is .pdf", async () => {
+    const { POST } = await import("@/app/api/onboarding/resume/route");
+
+    const res = await POST(
+      new Request("http://localhost/api/onboarding/resume", {
+        method: "POST",
+        body: (() => {
+          const fd = new FormData();
+          fd.append(
+            "resume",
+            new File(["%PDF-1.4 minimal"], "cv.pdf", { type: "" })
+          );
+          return fd;
+        })(),
+      })
+    );
+
+    expect(res.status).not.toBe(400);
+    const body = (await res.json()) as { code?: string };
+    expect(body.code).not.toBe("INVALID_FILE_TYPE");
+  });
 });

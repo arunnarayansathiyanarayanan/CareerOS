@@ -1,19 +1,17 @@
 import { auth } from "@clerk/nextjs/server";
 import OpenAI from "openai";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import mammoth from "mammoth";
 import { NextResponse } from "next/server";
 
 import { getOpenAiModel } from "@/lib/openaiModel";
+import {
+  extractResumeText,
+  resolveResumeMimeType,
+} from "@/lib/resume/extractText";
 
 export const runtime = "nodejs";
 
 const MAX_BYTES = 5 * 1024 * 1024;
-const ALLOWED_TYPES = new Set([
-  "application/pdf",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-]);
-
 const SYSTEM_PROMPT =
   "You are a resume parser. Extract structured data from the resume text. Return ONLY valid JSON, no markdown.";
 
@@ -58,22 +56,6 @@ async function countUploadsLastHour(
 
   if (error) throw error;
   return count ?? 0;
-}
-
-async function extractPdfText(buffer: Buffer): Promise<string> {
-  const { PDFParse } = await import("pdf-parse");
-  const parser = new PDFParse({ data: new Uint8Array(buffer) });
-  try {
-    const result = await parser.getText();
-    return result.text?.trim() ?? "";
-  } finally {
-    await parser.destroy();
-  }
-}
-
-async function extractDocxText(buffer: Buffer): Promise<string> {
-  const { value } = await mammoth.extractRawText({ buffer });
-  return value?.trim() ?? "";
 }
 
 function parseModelJson(raw: string): Record<string, unknown> {
@@ -132,8 +114,8 @@ export async function POST(req: Request) {
     }
 
     const file = entry as File;
-    const mime = (file.type || "").toLowerCase();
-    if (!ALLOWED_TYPES.has(mime)) {
+    const mime = resolveResumeMimeType(file);
+    if (!mime) {
       return jsonError(400, "File must be PDF or DOCX", "INVALID_FILE_TYPE");
     }
 
@@ -178,11 +160,7 @@ export async function POST(req: Request) {
 
     let text: string;
     try {
-      if (mime === "application/pdf") {
-        text = await extractPdfText(buffer);
-      } else {
-        text = await extractDocxText(buffer);
-      }
+      text = await extractResumeText(buffer, mime);
     } catch (e) {
       console.error("[resume] text extraction:", e);
       return jsonError(

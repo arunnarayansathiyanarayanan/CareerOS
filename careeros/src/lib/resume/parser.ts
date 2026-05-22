@@ -5,11 +5,14 @@ import {
   type S3ClientConfig,
 } from "@aws-sdk/client-s3";
 import { createId } from "@paralleldrive/cuid2";
-import mammoth from "mammoth";
 import OpenAI from "openai";
 
 import { getDb } from "@/db";
 import { resumes, type FileType } from "@/db/schema/resume";
+import {
+  extractPdfText,
+  extractDocxText,
+} from "@/lib/resume/extractText";
 import {
   ParsedResumeSchema,
   ResumeParseError,
@@ -161,15 +164,17 @@ function stripJsonFences(raw: string): string {
   return text.trim();
 }
 
-async function extractPdfText(buffer: Buffer): Promise<string> {
-  const { PDFParse } = await import("pdf-parse");
-  const parser = new PDFParse({ data: buffer });
-  try {
-    const result = await parser.getText();
-    return result.text?.trim() ?? "";
-  } finally {
-    await parser.destroy();
+async function extractTextForFileType(
+  buffer: Buffer,
+  fileType: FileType
+): Promise<string> {
+  if (fileType === "PDF") {
+    return extractPdfText(buffer);
   }
+  if (fileType === "DOCX") {
+    return extractDocxText(buffer);
+  }
+  return buffer.toString("utf-8").trim();
 }
 
 export async function uploadResume(
@@ -230,23 +235,7 @@ export async function parseResume(
   );
 
   const buffer = await objectBodyToBuffer(response.Body);
-
-  let rawText: string;
-  switch (fileType) {
-    case "PDF":
-      rawText = await extractPdfText(buffer);
-      break;
-    case "DOCX": {
-      const { value } = await mammoth.extractRawText({ buffer });
-      rawText = value?.trim() ?? "";
-      break;
-    }
-    case "TXT":
-      rawText = buffer.toString("utf-8").trim();
-      break;
-    default:
-      throw new ResumeParseError("Unsupported resume file type");
-  }
+  const rawText = await extractTextForFileType(buffer, fileType);
 
   return structureResumeText(rawText);
 }
